@@ -1,0 +1,57 @@
+gzip/gunzip指令
+	压缩和解压缩文件，可以同时压缩、解压缩多个文件
+	gzip 文件名
+	gunzip 文件名
+	
+	将home目录下a.txt压缩:
+	gzip /home/a.txt   (压缩后，不保留原文件)
+	
+	将a.txt.gz解压缩:
+	gunzip /home/a.txt.gz 
+	
+zip/unzip指令
+	zip 用于压缩文件， unzip 用于解压的，这个在项目打包发布中很有用的
+	基本语法:
+		zip [选项] xxx.zip 需要压缩的内容 (将目标内容压缩到xxx.zip中)
+		unzip [选项] xxx.zip (解压缩)
+		
+	zip常用选项:
+	-r : 递归压缩(目录下所有内容)
+	
+	unzip常用选项:
+	-d <路径> : 指定解压后文件的存放目录(路径)
+	
+	1.将/home下的所有文件压缩成myhome.zip:
+		zip -r myhome.zip /home/  (压缩后保留原文件)
+	2.解压到/opt/emp目录：
+		unzip -d /opt/tmp myhome.zip
+		
+tar指令
+	tar是打包指令，打包后的文件的后缀是.tar.gz，一般和gzip/gunzip结合使用
+	基本语法:
+		tar [选项] xxx.tar.gz 打包内容  (打包后保留原文件)
+		
+	常用选项:
+	-c  	打包成.tar文件
+	-v		显示详细信息
+	-f 		指定打包后的文件名
+	-z 		打包时压缩或解包时解压
+	-x 		解包.tar文件
+	
+	选项组合:
+	-cf : 打包成指定.tar文件
+	-xf : 解包指定.tar文件
+	-zcvf: 打包后并压缩，指定生成的文件名，显示过程信息
+	-zxvf: 解包后并解压，指定操作的文件名，显示过程信息
+	
+	tar -zxvf xxx.tar.gz -C 解压目录 (解压到指定目录)
+	
+	1.将/home下a.txt打包并压缩成abc.tar.gz :
+		tar -zcvf abc.tar.gz /home/a.txt
+	2.将/home下所有文件打包并压缩成myhome.tar.gz :
+		tar -zcvf myhome.tar.gz /home/
+	3.将a.tar.gz解包解压到当前目录:
+		tar -zxvf a.tar.gz 
+	4.将myhomes.tar.gz 解包解压到/opt/tmp2目录： (目标目录必须存在，如不存在则报错)
+		mkdir /opt/tmp2
+		tar -zxvf myhome.tat.gz -C /opt/tmp2

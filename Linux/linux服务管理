@@ -1,0 +1,42 @@
+服务(service)
+	本质就是进程，但是运行在后台。
+	通常都会监听某个端口，等待其它程序的请求，比如(mysql , sshd 防火墙等)，因此我们又称为守护进程
+
+在Centos7之后，不再使用service，而是systemctl
+	service	服务名 [start | stop | restart | reload | status]
+	systemctl 
+	
+例：
+	1.查看sshd服务状态：
+		service sshd status
+	2.查看防火墙服务状态:
+		systemctl status firewalld.service
+	
+	测试端口(windows)： telnet ip 端口
+	
+查看服务名：
+	1. 执行命令 ：setup  
+	2. 查看所有服务名和状态 ：systemctl list-unit-files
+	3. 要列出 systemd 服务，请执行 'systemctl list-unit-files'
+	4. 查看在具体 target 启用的服务请执行 'systemctl list-dependencies [target]'。
+      
+服务运行级别(runlevel)：
+	0：关机
+	1：单用户(找回丢失密码)
+	2: 多用户无网络服务
+	3: 多用户有网络服务
+	4: 保留
+	5: 图形界面
+	6: 重启
+	常用级别：3和5
+	
+	查看当前运行级别：systemctl get-default
+	切换运行级别(图形界面):	systemctl set-default graphical.target
+
+chkconfig: 为服务设置各个运行级别下的自启动/关闭
+	基本语法：
+		1.显示所有 SysV 服务 ：chkconfig --list 
+		2.显示指定的 SysV 服务 ：chkconfig 服务名  --list 或 chkconfig --list | grep 服务名
+		3.设置服务在第5运行级别的自启动：chkconfig --level 5 服务名 on/off
+		4. 要列出 systemd 服务，请执行 'systemctl list-unit-files'
+		5. 查看在具体 target 启用的服务请执行 'systemctl list-dependencies [target]'。

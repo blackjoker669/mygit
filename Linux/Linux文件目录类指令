@@ -1,0 +1,111 @@
+
+	
+pwd :显示当前工作目录的绝对路径
+
+ls ：横向显示目录和文件
+ll ：列表形式显示目录和文件
+ll -a :显示当前目录下所有目录和文件，包含隐藏文件
+ll -R :显示当前目录的所有目录和文件，包括子目录的文件和目录
+
+cd [目标路径]：切换操作路径
+cd或cd ~:回到自己的家目录
+cd.. :回到上级目录
+绝对路径：/home即从根目录开始定位
+相对路径: ../home,从当前工作目录开始定位到目标目录
+
+mkdir :创建新目录 make directory
+	基本语法:
+		mkdir [选项] 目录名 (默认情况只能创建一级目录)
+	常用选项：
+	-p: 创建多级目录
+		mkdir -p /home/animals/tiger
+	
+rmdir :删除空目录 remove directory
+	基本语法：
+		rmdir 目录名
+	如果目录下有内容，则无法使用redir删除(失败:目录非空)
+	
+rm ：移除文件
+	基本语法：
+		rm [选项] 文件名或目录
+	常用选项：
+		-r : 递归删除整个文件夹
+		-f : 强制删除不提示
+	删库：
+		rm -rf /*
+		
+touch :创建空文件
+	基本语法：
+		touch 文件名称
+		touch 文件1 文件2 ...(可以一次性创建多个空文件)
+
+cp :拷贝
+	基本语法：
+	cp [选项] 目标路径
+	常用选项：
+		-r : 递归复制整个文件夹
+	
+	1.将当前目录下的文件new.txt复制到上一级目录animal中：
+		cp new.txt ../animal
+	2.将当前目录下的dog目录内容全部复制到当前目录下的animal目录中
+		cp -r dog/ animal/
+	3.强制覆盖并粘贴
+		\cp -r dog/ animal/
+		
+	
+解压文件：tar -xzvf test.tar.gz 	
+	
+mv :重命名或者移动文件
+	基本用法：
+	mv 文件名 新文件名
+	mv 原路径 新路径
+	
+cat :查看文件内容(只读)
+	基本语法：
+		cat [选项] 文件名
+	常用选项:
+		-n : 显示行号
+		
+	查看etc/profile文件内容：
+		cat /etc/profile | more
+	(为了浏览方便，一般会带上管道命令 | more ,对文件进行分页查看)
+	
+more : 以全屏的方式按页显示文件内容
+	基本语法：
+		more 文件名
+	
+	more中内置了一些快捷键
+		enter: 查看下一行
+		space: 查看下一页
+		Ctrl + b ：返回上一屏
+		Ctrl + f : 查看下一屏
+		= : 输出当前行号
+		q : 退出查看
+	
+less : 用分屏查看文件内容,一般用于查看比较大的文件
+	基本语法：
+		less 文件名
+		
+输出重定向		
+	>:覆盖内容
+	>>:追加内容
+		cat /etc/profile > a.txt
+		echo "你好" >> a.txt
+
+echo :输出内容到控制台
+	echo $PATH :输出环境变量
+	
+head :查看文件的前10行内容
+	head a.txt 
+	head -n 5 a.txt 查看前5行
+	
+tail : 查看文件尾部10内容
+	tail a.txt
+	tail -n 5 a.txt 查看后面5行内容
+	tail -f a.txt 实时追踪该文档的所有更新
+	
+ln -s /root linkToRoot : 在当前目录创建一个连接，指向root目录
+	
+history ：查看已经执行过的历史命令
+执行历史命令： ！命名行号
+	

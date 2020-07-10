@@ -1,0 +1,54 @@
+rpm包管理:
+	一种用于互联网下载包的打包及安装工具，它包含在某些linux分发版中。它生成具有.rpm后缀名的文件。
+	RPM是Redhat Package Manager(红帽软件包管理工具)，功能类似windows系统的setup.exe安装文件。
+	
+	rpm 包的简单查询指令:
+		查询已安装的rpm列表 : rpm -qa | grep xxx
+		
+	rpm包名的基本格式：
+	如：
+		firefox-68.6.0-1.el7.centos.x86_64.rpm 
+	名称：firefox
+	版本号： 68.6.0-1
+	适用操作系统： el7.centos.x86_64
+		表示centos7.x的64位系统
+		如果是i686\i386表示32位系统，noarch表示通用
+	
+rpm包的其他查询指令：
+	rpm -qa :  查询系统安装的所有rpm软件包
+	rpm -qi 软件包名 : 查询软件包信息
+		rpm -qi file
+	rpm -ql 软件包名 : 查询软件包中的文件
+		rpm -ql firefox
+	rpm -qf 文件全路径名 : 查询文件所属的软件包
+		rpm -qf /etc/passwd 
+		
+卸载rpm包：
+
+	基本语法:
+		rpm -e RPM包名
+例：
+	删除firefox软件包
+		rpm -e firefox
+		
+	1.如果其他软件包依赖于将要卸载的软件包，卸载时会产生错误信息
+	如： rpm -e foo
+	removing these packages would beak dependencies : foo is needed by bar-1.0.1
+	2.强制删除：
+		rpm -e --nodeps foo
+		
+安装rpm包：
+	
+	基本语法:
+		rpm -ivh RPM包全路径名称
+		
+yum:
+	Yum 是一个 Shell 前端软件包管理器。基于 RPM 包管理，能够从指定的服务器自动下载 RPM 包并且安装，
+	可以自动处理依赖性关系，并且一次安装所有依赖的软件包。使用 yum 的前提是可以联网。
+	
+	•查询 yum 服务器是否有需要安装的软件
+		yum list|grep xx 
+	•安装指定的 yum 包
+		yum install xxx	
+	
+	

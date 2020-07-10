@@ -1,0 +1,133 @@
+1.AOP（Aspect-Oriented Programming）: 面向切面编程是对传统的OOP(Object-Oriented Programming)的补充
+	*面向对象:纵向继承机制（业务代码和非业务代码无法有效分离）
+	*面向切面:横向抽取机制 
+	
+2.AOP编程操作的主要对象是切面(aspect)，而切面用于模块化横切关注点(公共功能).
+3.在应用AOP编程时，仍然需要定义公共功能，但可以明确的定义这个功能应该在那里，以什么方式应用
+并且不必修改受影响的类。这样一来横切关注点就被模块化到特殊的类里——这样的类称之为"切面"
+4.AOP的好处:
+	1.每个事务逻辑位于一个位置，代码不分散，便于维护和升级
+	2.业务模块更简洁，只包含核心业务代码
+	
+AOP术语：
+	1.横切关注点
+		*从每个方法中抽取出来的同一类非核心业务(如:日志功能)
+	2.切面(Aspect)
+		*封装横切关注点信息的类，每个关注点体现为一个通知方法(如:Mylogger类)
+	3.通知(Advice)，有5种
+		*切面必须要完成的各个具体工作(如：Mylogger.before()、Mylogger.after()方法)
+		1.前置通知:@Before
+		2.后置通知
+		3.返回通知
+		4.异常通知
+		5.环绕通知:包含以上四种
+	4.目标(Target)
+		*被通知的对象(如:PersonImpl类的对象)
+	5.代理(Proxy)
+		*向目标对象应用通知之后创建的代理对象（如：Proxy）
+	6.连接点(Joinpoint)
+		*功能执行的各个位置，通知作用的目标点
+		*任意类的任意方法都可以叫做连接点，因为它就是个概念，而切入点是我们正在增强的方法			
+	7.切入点(pointcut)
+		*定义当前切面需要作用的目标(切入点表达式)
+		*切入点是切面作用于连接点的条件，只有条件符合了才会作用到连接点
+
+AspectJ:AOP的实现框架
+	jar包：com.springsource.net.sf.cglib\com.springsource.org.aopalliancec\com.springsource.org.aspectj.weaver
+			spring-aop\spring-aspects
+	1.在配置文件里加入扫描包，导入context命名空间,扫描包下的所有类，加载进spring容器
+		<context:component-scan base-package:com.proxy />
+	2.导入aspectj的jar包，在配置文件导入aop命名空间，实现自动代理
+		<aop:aspectj:autoproxy />
+	3.在切面类(日志类)上标注注解，@Aspect：表示当前类为切面 @Component:作为组件加载进spring容器
+		1.在前置通知上标注 @Before(value="execution(public void com.proxy.PersonImpl.walk())")			
+			*@Before:将方法指定为前置通知，必须设置value，值为切入点表达式execution(修饰符 返回值 方法全限定名)
+			*"execution(public void com.proxy.PersonImpl.*()":当前类的所有方法都指定为前置通知
+			*execution(* com.proxy.*.*(..)): com.proxy包下的任意类的任意方法(任意参数)都指定为前置通知
+			*在前置方法的参数中传入连接点类型的对象joinPoint
+				*获取方法参数:joinpoint.getArgs()
+				*获取方法名：joinpoint.getSignature().getName()
+			@Before(value="execution(public void com.proxy.PersonImpl.walk())")
+			public void beforeMethod(Joinpoint joinpoint){
+				Object[] args= joinpoint.getArgs();//获取方法参数
+				String methodName = joinpoint.getSignature().getName();//获取方法名
+				System.out.println("method:"+methodName+",arguments:"+Arrays.toString(args));
+			}
+		2.后置通知：@After作用于方法的finally语句块，即不管有没有异常都会执行
+			*一般用于关闭资源
+			@After(value="execution(* com.proxy.*.*(..))"
+			public void afterMethod(){
+				System.out.println("后置通知");
+			}
+		3.返回通知:@AfterReturning作用于方法执行之后，在try语句块中最后执行
+			*returning=result,通过returning参数接收方法的返回值并赋给变量result，在方法中必须使用与result同名的参数
+			@AfterReturning(value="execution(* com.proxy.*.*(..),returning=result)")
+			public void afterReturning(JoinPoint joinpoint,Object result){
+				String methodName = joinpoint.getSignature().getName();
+				System.out.println("方法名:"+methodName+"返回值:"+result);
+			}
+		4.异常通知：@AfterThrowing作用于方法发生异常时，在catch语句块中执行
+			*throwing=ex,通过throwing参数接受异常对象并赋给变量ex，在方法中必须使用于ex同名的参数
+			@AfterThrowing(value="execution(* com.proxy.*.*(..),throwing=ex)")
+			public void afterThrowingMethod(Exception ex){
+				System.out.println("异常为:"+ex);		
+			}
+		5.环绕通知：@Around
+			@Around(value="execution(* com.proxy.*.*(..))")
+			public Object aroundMethod(ProceedingJoinPoint joinpoint){
+				
+				Object result = null;
+				try{
+					//前置通知
+					result = joinpoint.proceed();//执行方法,method.invoke();
+					return result;
+					//返回通知
+				}catch(Throwable e){
+					e.printStackTrace();
+					//异常通知
+				}finally{
+					//后置通知
+				}
+				return -1;
+			}
+	
+	4.公共切入点@PointCut，定义切面类的通知方法的公共切入点表达式
+		@PointCut("execution(* com.proxy.*.*(..))")
+		private void loggingOperation(){};
+		用@pointcut标注该方法后，通知方法的切入点表达式可以省略为该方法名+()
+		如:
+			@Before("loggingOperation()")
+			public void beforeMethod(){
+				System.out.println("前置通知");
+			}
+			@After("loggingOperation()")
+			public void afterMethod(){
+				System.out.println("后置通知");
+			}
+			
+	5.切面优先级
+		如果当前包下有多个切面(非核心业务),使用@Order()管理切面优先级
+		@Order(0)   //值越小，优先级越高，默认值为int的最大值2^31-1
+		@Component
+		@Aspect
+		public class MyloggerAspect{}
+			
+XML配置AOP
+	 1.导入aop和context命名空间
+	 2.编写配置文件
+		<context:component-scan base-package="com.proxy"></context:component-scan>
+		<aop:config>
+			<aop:aspect ref="mylogger">		//定义切面
+				<aop:pointcut expression="execution(* com.proxy.*.*(..))" id="cut"/> //定义公共切入点表达式	
+				<aop:before method="beforeMethod" pointcut-ref="cut"/>	//使用公共切入点						
+			//	<aop:before method="beforeMethod" pointcut="execution(* com.proxy.*.*(..))"/>	//定义前置通知
+			</aop:aspect>
+		</aop:config>
+	3.test方法测试
+		public class test(){
+			public static void main(String[] args){
+				ApplicationContext ac = new ClassPathXmlApplicationContext("AOP-xml.xml");
+				Person p = ac.getBean("personImpl",Person.class);
+				p.walk();
+			}	
+		}

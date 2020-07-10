@@ -1,0 +1,122 @@
+安装JDK：
+	1.查看是否已安装jdk:
+		rpm -qa|grep java
+	2.卸载已安装jdk:
+		rpm -e --nodeps jdk文件名
+	3.安装jdk:
+		1.将下载好的安装包 jdk-8u21-linux-x64.tar.gz 通过Xftp上传到指定目录(/opt)
+		2.解包并解压: tar -zxvf jdk-8u21-linux-x64.tar.gz 
+		3.复制安装包到 /usr/local/java 目录下 : cp -r jdk1.8.0_211/ /usr/local/java
+		4.添加环境变量: vim /etc/profile ,在最后面添加:
+			JAVA_HOME=/usr/local/java
+			CLASSPATH=.:$JAVA_HOME/lib/
+			PATH=$PATH:$JAVA_HOME/bin
+			export PATH JAVA_HOME CLASSPATH
+		5.重新加载/etc/profile文件 ：source /etc/profile
+		6.使用java -version 查看是否安装成功
+		
+安装tomcat:
+	1.解压到/opt : tar -zxvf apache-tomcat-7.0.70.tar.gz 
+	2.进入bin目录 : cd apache-tomcat-7.0.70/bin/
+	3.启动tomcat :  ./startup.sh 
+	4.在浏览器中测试tomcat，输入网址localhost:8080
+	
+	在windows系统中访问linux的tomcat:
+	5.开放8080端口:  firewall-cmd --zone=public --add-port=8080/tcp --permanent
+	6.重启防火墙: firewall-cmd --reload
+	7.在windows系统浏览器中进行访问测试, http://192.168.80.128:8080
+
+安装mysql-5.7:
+	1.查看并卸载mariadb 
+		rpm -qa|grep mariabd
+		rpm -e --nodeps maria文件
+	2.上传压缩包到指定目录	/app/database/
+	3.解压安装包: tar -xf xxx.tar.gz
+	4.创建解压文件的软连接，方便访问  ln -s xxx mysql,并修改权限 chown -R mysql. *
+	5.设置环境变量: vim /etc/profile
+		添加一行:
+		export PATH=$PATH:/app/database/mysql/bin
+		生效配置:
+		source /etc/profile
+	6.创建1mysql用户
+		1.useradd mysql
+		2.mysql目录改为mysql读写权限
+			chown -R mysql:mysql /app/database/mysql
+	6.初始化数据库
+		1.mysqld --initialize-insecure --user=mysql --basedir=/app/database/mysql --datadir=/data/3306/
+			*初始化时可能报错,需要安装插件:yum install -y libaio.devel
+			*已经初始化后再次进行初始化会报错，在/data/3306/目录下已经有文件了
+		2.mysqld --initialize --user=mysql --basedir=/app/database/mysql --datadir=/data/3306/
+			*这种初始化完成后会生成12位临时密码：[Note] A temporary password is generated for root@localhost: ad5WDogAh9.h
+			*必须在使用MySQL之前重置密码
+			*密码管理使用严格模式: 3种密码复杂度
+		3.mysql-5.6版本的初始化：
+			/app/database/mysql/scripts/mysql_install_db --user=mysql --basedir=/app/database/mysql --datadir=/data/3306/
+			
+	7.配置my.cof文件
+		修改配置文件 ：
+		cat > /etc/my.cnf <<EOF
+		[mysqld]
+		character_set_server=utf8      
+		port=3306        
+		user=mysql
+		socket=/tmp/mysql.sock
+		basedir=/app/database/mysql
+		datadir=/data/3306
+		[mysql]
+		port=3306
+		socket=/tmp/mysql.sock
+		default-character-set=utf8
+		EOF
+	8.准备Mysql启动脚本
+		cd /app/database/mysql/support-files/
+		
+		拷贝mysql的启动脚本至系统软件管理目录中
+		cp mysql.server /etc/init.d/mysqld
+	
+	9.启动mysql服务
+		service mysqld start	
+		
+		Centos7：
+		chkconfig --add mysqld
+		systemctl start mysqld 		
+		设置开机启动:
+		chkconfig mysqld on
+	
+	10.登录mysql
+		如果使用--initialize-insecure进行的初始化，直接输入mysql即可登录
+		否则登录之前需要修改密码：					
+		mysqladmin -uroot -p password '新密码'
+		使用原始加密方式:
+		alter user 'root'@'localhost' identified with mysql_native_password by 'root'（新密码）
+	
+	11.设置可以远程登录
+		use mysql
+		update user set host='%' where user='root' limit 1;
+		刷新权限
+		mysql>flush privileges;
+	12.开放3306端口
+		firewall-cmd --zone=public --add-port=3306/tcp --permanent
+		firewall-cmd --reload
+	13.登录SQLyog
+
+
+安装redis:
+	1.解包并解压安装包: tar -zxvf redis-5.0.8.tar.gz
+	2.复制到/usr/local/redis目录下 : cp -r redis-5.0.8 /usr/local/redis 		
+	3.进入redis-5.0.8目录内，进行编译 :	make   
+		(如果出错，则先安装gcc : yum -y install gcc automake autoconf libtool make)
+		（编译报致命错误：jemalloc/jemalloc.h：没有那个文件或目录 使用: make MALLOC=libc）
+	4.编译结束后，执行命令: make install
+	5.进入/usr/local将bin复制到redis目录下: cp -r bin/ redis/
+	6.进入bin目录,开启redis测试是否安装成功 :  ./redis-server
+	7.设置后台启动：
+		进入redis目录把redis.conf复制到bin目录下： cp -r redis.conf bin/
+		进入bin目录，修改配置文件: vim redis.conf
+		1.关闭保护模式 : protected mode no
+		2.在后台启动服务: daemonize yes
+	8.进入bin目录，指定配置文件启动redis : redis-server redis.conf
+	9.查看是否启动成功: ps -ef|grep redis
+	10.进入客户端 : redis-cli -p 6379
+	11.关闭客户端 : redis-cli shutdown 或着关闭指定端口 redis-cli -p 6379 shutdown
+	

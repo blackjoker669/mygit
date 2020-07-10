@@ -1,0 +1,34 @@
+查看当前系统版本：cat /etc/redhat-release		
+查看端口信息: netstat -tln
+查看redis服务信息 ： ps -ef | grep redis
+获取linux系统的ip： ifconfig
+检查端口是否开放 : firewall-cmd --query-port=端口号/协议
+
+防火墙操作:
+	查看防火墙的是否运行: firewall-cmd --state
+	重启防火墙: firewall-cmd -reload
+	开放一个tcp端口: firewall-cmd --zone=public --add-port=8080/tcp --permanent
+	开放一个udp端口: firewall-cmd --zone=public --add-port=1111/udp --permanent
+	开放多个端口: firewall-cmd --zone=public --add-port=80-90/tcp --permanent
+	关闭端口: firewall-cmd --zone=public --remove-port=80/tcp --permanent
+	对指定的IP开放端口: firewall-cmd --permanent --add-rich-rule="rule family="ipv4" 
+						source address="192.168.1.100" portprotocol="tcp" port="80" accept"
+	–zone #作用域
+	–add-port=80/tcp #添加端口，格式为：端口/通讯协议
+	–permanent #永久生效，没有此参数重启后失效
+	
+权限操作：
+	修改文件所有者：
+		chown 用户名 文件名
+	修改文件所在组：
+		chgrp 组名 文件名
+	改变用户所在组：
+		usermod -g 组名 用户名
+	改变用户家目录：
+		usermod -d 目录名 用户名 
+	查看所有用户：
+		cat /etc/passwd
+	查看所有组:
+		cat /etc/group
+	查看查看当前用户所在组:
+		groups 用户名

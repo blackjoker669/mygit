@@ -1,0 +1,38 @@
+1.jdk1.7版本的扩容在多线程的情况下，会产生循环链表，导致不断消耗CPU资源:
+
+transfer(Entry[] newTable, boolean rehash){
+	int newCpacity = new Table.length;
+	for(Entry<K,V> e : table){         //遍历原数组的Entry键值对
+		while(null != e){
+			Entry<K,V> next = e.next;  //e.next即链表上e指向的下一个Entry，next指向链表上e的下一个Entry
+			if(rehash){          //判断是否进行重新hash
+				e.hash = null == e.key ? 0 : hash(e.key);
+			}
+			int i = indexFor(e.hash, newCapacity);      //计算该Entry在新数组上存放的下标
+			e.next = newTable[i];		//将e.next指向新数组的下标i，即e指向e.next这条指针重新指向新数组的下标i
+			newTable[i] = e;			//将e赋给新数组的下标i位置，即e与新数组的i下标处的null值组成链表，将下标i的null向下移动，并在下标i填充e键值对
+			e = next ; 					//将e指向e的下一个Entry，即以下一个Entry作为e来进行下一个数据移动(循环遍历这个操作，使原数组上的所有数据转移到新数组)
+		}
+	} 
+}
+
+在多线程情况下，假设线程1和线程2同时进行到Entry<K,V> next = e.next；线程2在这时被阻塞，当线程1将数据转移到新数组后，
+线程2开始进行数据转移，而这时线程2的next和e指向的是线程1完成数组扩容后的数据，在进行数据转移时，由于存在null值，
+即e.next = null;导致当e.next重新指向新数组的下标i时，形成循环链表。  
+
+rehash : 一般情况下都不会进行该方法，即新数组的indexFor()采用的hash值是原数组元素的哈希值
+
+hash()方法：
+	进行了很多的位运算(异或和右移)，提高哈希值的散列性，使链表数据平均分散。
+	
+indexFor()方法:
+	通过与运算&进行数组下标的计算，性能较取模运算更好
+
+
+头插法添加链表数据： createEntry
+
+
+
+2.为什么hashmap的容量必须是2的幂次方？
+
+

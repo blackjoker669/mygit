@@ -1,0 +1,81 @@
+垃圾回收器(Garbage Collectors)
+	1.垃圾回收器的发展路线，是随着内存越来越大的过程而演进，不断地优化
+		从分代算法演化到不分代算法
+		从手动调优演化到自动调优(不需要调优)
+		
+	2.JDK诞生Serial追随，提高效率，诞生了PS，为了配合CMS，诞生了PN，CMS是1.4版本后期引入，CMS是里程碑式的GC,它开启了并发回收的过程，
+	但是CMS毛病比较多，因此目前没有任何一个JDK版本默认是CMS,并发垃圾回收是为了解决STW
+	
+	3.Stop-The-World,在垃圾回收过程中经常涉及到对对象的挪动（比如对象在Survivor 0和Survivor 1之间的复制），
+	进而导致需要对对象引用进行更新。为了保证引用更新的正确性，Java将暂停所有其他的线程，这种情况被称为“Stop-The-World”
+	，导致系统全局停顿。Stop-The-World对系统性能存在影响，因此垃圾回收的一个原则是尽量减少“Stop-The-World”的时间。
+	
+	4.Serial对年轻代进行串行回收,主要处理几十兆大小的内存垃圾回收
+		a stop-the-world,copying collector which uses a single GC thread
+		单线程下使用拷贝算法进行垃圾回收，有比较明显的STW影响
+		
+	5.Serial Old对老年代进行串行回收
+		a stop-the-world,mark-sweep or mark-compact that uses a single GC thread
+		单线程下使用标记清除或标记整理算法进行垃圾回收，有比较明显的STW影响
+		
+	6.PS(Parallel Scavenage)对年轻代进行并行回收，处理几个G的内存垃圾回收
+		a stop-the-world,copying collector which uses multiple GC thread
+		多个GC线程中使用拷贝算法进行垃圾回收，有一定的STW影响
+	
+	7.Parallel Old对老年代进行并行回收
+		a stop-the-world, mark-sweep or mark-compact which uses multiple GC thread
+		多线程下使用标记清除或标记整理算法进行垃圾回收，有比较明显的STW影响
+		
+	8.ParNew配合CMS对年轻代进行并行回收
+		a stop-the-world,copying collector which uses multiple GC thread
+		it differs from PS in that it has enhancements that make it usable with CMS
+		For example,ParNew does the synchronization needed so that it can run during the concurrent phases of CMS
+		增强了组合CMS功能的PS
+		
+	9.Concurrent Mark Sweep CMS对老年代进行并发的回收，垃圾回收和应用程序可以同时运行，降低了STW的时间。几十个G的内存垃圾回收。
+	CMS是Mark-Sweep，则会产生内存碎片，当碎片到达一定程度，CMS的老年代分配对象分配不下的时候，使用SerialOld进行老年代回收
+	多次标记：
+		1.初始标记，在短暂的STW中，对GC root根对象中一些被认为是垃圾的根对象进行初始标记
+		2.并发标记，GC线程和工作线程同时运行过程中，GC线程会顺着根对象的引用链向下查找并对垃圾进行标记，可能会产生标记失误：
+			1.在运行的过程中，被标记为垃圾的对象获得了工作线程的引用，成为存活对象(影响较大)
+			2.或者没有被标记的对象在工作线程中失去引用变成垃圾(称为浮动垃圾，影响较小，下次GC进行回收即可)			
+		3.重新标记，在短暂的STW中，对并发标记可能产生的标记失误进行扫描，并进行重新标记
+		4.并发清理。对标记的对象进行清理，被标记的对象无法被引用指向。
+		其中初始标记过程和重新标记过程的速度较快，因为需要处理的对象较少。
+		而并发标记主要对堆中大量的对象进行扫描，查询对象的引用关系，比较耗时，所以将这个标记过程和工作线程一起执行，而不采取STW的策略，提高了GC的效率。
+			
+		三色标记，用于做并发标记，一定会产生错标，以及Incremental Update增量更新也会有错标，最后必须要有重新标记。	
+			1.灰：未标记完的
+			2.黑：全标记的
+			3.白：未标记的
+	
+	10.PS+PO (Parallel Scavenge + Parallel Old) ，即jdk1.8默认的垃圾回收器ParallelGC
+		在命令行中输入 : java -XX: +PrintCommandLineFlags -version 可以看到默认的垃圾回收器
+		后面优化为使用G1的垃圾回收器： -XX:+UseG1GC
+	
+	11.G1(Garbage First) 逻辑上分代，但在物理内存中没有分代，支持上百G内存的垃圾回收。采用三色标记+SATB( at begining)
+		1.实行分区回收，将内存分块Region，每个Region在逻辑上可以分为Old、Survivor、Eden以及特别大的对象Humongous
+		2.每个分区在同一时刻只能属于某一种分代，这些逻辑上的分区是为了方便复用以前的分代框架的逻辑。
+		3.在物理上则进行分区，G1将优先对垃圾较多的分区进行处理，而不是对所有的分区都进行处理，这样可以花费较少的时间，提高了效率。
+		4.G1是一种带压缩整理的垃圾收集器，在回收老年代的分区时，是将存活的对象从一个分区拷贝到另一个可用分区，在拷贝的过程实现了局部的压缩。
+		5.每个分区大小为1M到32M不等，都是2的幂次方。
+		6.新生代内存不够进行回收时，新生代中的对象要么被回收，要么晋升为幸存者，这样与老年代策略统一，方便调整分代的大小。
+		7.CSet = Collection Set 一组可被回收的分区的集合，在Cset中存活的数据会在GC过程中被移动到另一个可用分区，Cset中的分区可以来自新生代和老年代。占用不到堆空间的1%内存
+		8.Rset = Remembered Set 记录了其他Region中的对象到本Region的引用，使得GC不需要扫描整个堆去查找当前分区对象的引用，只需要扫描RSet即可。
+	
+	12.ZGC,Shenandoah 支持4T大小内存的垃圾回收，没有分代的概念，自jdk11开始。采用颜色指针。
+	
+	13.Epsilon ，用于调试
+		1.查看垃圾产生过程
+		2.对不需要进行垃圾回收的程序进行内存分配
+	
+	14.阿里的多租户JVM
+		1.每租户单空间
+		2.session based GC
+	
+常用组合垃圾收集器:
+	1.Serial + Serial Old
+	2.ParNew + CMS
+	3.PS+PO (Parallel Scavenge + Parallel Old)
+	
+	

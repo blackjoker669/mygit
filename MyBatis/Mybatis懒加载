@@ -1,0 +1,15 @@
+<settings>属性：延迟加载(懒加载)
+	这种配置下，分步查询的任意延迟属性将会按需要进行加载。
+		*如果只需要使用上一步查询，则将不进行下一步查询
+		*如果使用了两步查询，则每查询一步输出一次结果，分两步进行查询
+	<settings>
+		<setting name="lazyLoadingEnabled" value="true"/>
+		<setting name="aggressiveLazyLoading" value="false"/>
+	</settings>
+	lazyLoadingEnabled:延迟加载开关,开启时，所有关联对象都会延迟加载。
+	aggressiveLazyLoading:主动延迟加载,关闭时，每种延迟属性的调用(查询)将会按需要加载
+	
+控制指定的属性变成主动延迟加载，即取消延迟加载：
+	<association>和<collection>标签中，使用属性fecthType="eager"即可取消延迟加载,反之fecthType="lazy"
+	
+	

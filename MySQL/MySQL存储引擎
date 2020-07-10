@@ -1,0 +1,66 @@
+1.什么是存储引擎?
+相当于MySQL内置的文件系统。与Linux文件系统进行交互的层次结构，也是MySQL最核心的结构。
+
+2.MySQL存储引擎种类
+	1. Oracle MySQL
+	可以针对不同的表，设定不同的存储引擎。
+	show engines; #查看MySQL支持的引擎种类
+	一共9种:
+		MRG_MYISAM
+		MyISAM
+		InnoDB : 5.5版本之后默认的存储引擎。99%以上的业务表是InnoDB。
+		CSV
+		MEMORY
+		ARCHIVE
+		FEDERATED
+		BLACKHOLE
+		PERFORMANCE_SCHEMA
+
+	
+	2. 其他分支
+	percona ：XtraDB
+	MariaDB	：InnoDB
+	其它引擎种类:
+	TokuDB , MyRocks
+	Compression : 25x for high compression 压缩比高
+	Fast Insertions and Deletions 插入和删除操作的性能更高
+	适合于业务当中有大量插入或者删除操作的场景。
+	应用于数据量较大的业务。
+	
+	
+3.InnoDB核心特性
+	MVCC (multi version concurrent control)
+	集群索引（聚簇索引）Clustered index
+	多个缓存区池
+	事务 ACID
+	行级锁粒度 : 并发度
+	支持外键约束
+	更改缓存(change buffer)
+	自适应hash索引AHI ，adaptive_hash_index
+	支持更多复制特性
+	更新数据字典
+	支持热备份
+	自动故障恢复等功能
+
+4.存储引擎管理命令	
+	查看锁状态
+	show status like '%lock%';
+	查看默认引擎
+	select @@default_storage_engine;
+	设置当前会话的默认引擎，重启后失效
+	set default_storage_engine=myisam;
+	设置全局默认引擎(仅影响新会话)，重启后失效
+	set global default_storage_engine=myisam;
+	
+存储引擎体系结构
+1.宏观结构
+MyISAM: 
+	create table xxx(id int)engine=myisam;
+	xxx.frm: 数据字典信息(列的定义和属性)
+	xxx.MYD: 数据行
+	xxx.MYI: 索引
+InnoDB:
+	xxx.frm: 数据字典信息
+	xxx.cbd: 数据行，索引
+2.微观结构
+	

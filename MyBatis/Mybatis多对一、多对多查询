@@ -1,0 +1,34 @@
+多对一查询:
+<collection>:处理一对多和多对多关系映射
+	*ofType:查询结果(多条记录)集合中的类型
+	
+	<resultMap type="Dept" id="Emps">
+ 		<id column="did" property="did"/>
+ 		<result column="dname" property="dname"/>
+ 		<collection property="emps" ofType="Emp" >
+ 			<id column="eid" property="eid"/>
+	 		<result column="ename" property="ename"/>
+	 		<result column="age" property="age"/>
+	 		<result column="sex" property="sex"/>
+ 		</collection>
+ 	</resultMap>
+ 	<!-- Dept getEmpsById(String did); -->
+ 	<select id="getEmpsById" resultMap="Emps">
+ 		select d.*,e.eid,e.ename,e.age,e.sex from dept  d left join emp e on  d.did = e.did where d.did = #{did}
+ 	</select>
+	
+多对一分步查询：
+	<!-- List<Emp> getEmpListById(String did); -->
+ 	<select id="getEmpListById" resultType="Emp">
+ 		select eid,ename,age,sex from emp where did=#{did}
+ 	</select>
+ 	
+ 	<resultMap type="Dept" id="EmpsStep">
+ 		<id column="did" property="did"/>
+ 		<result column="dname" property="dname"/>
+ 		<association property="emps"  select="com.mybatis.mapper.DeptMapper.getEmpListById"  column="did"/>
+ 	</resultMap>
+ 	<select id="getDeptById" resultMap="EmpsStep">
+ 		select did,dname from dept where did = #{did}
+ 	</select>
+ </mapper>

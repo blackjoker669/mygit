@@ -1,0 +1,56 @@
+linux磁盘分区和挂载
+	1.mbr 分区:
+		1.最多支持四个主分区
+		2.系统只能安装在主分区
+		3.扩展分区要占一个主分区
+		4.MBR 最大只支持 2TB，但拥有最好的兼容性
+	
+	2. gtp 分区:
+		1.支持无限多个主分区（但操作系统可能限制，比如 windows 下最多 128 个分区）
+		2.最大支持 18EB 的大容量（1EB=1024 PB，1PB=1024 TB  ）
+		3.windows7 64 位以后支持 gtp
+		
+	linux系统的磁盘分区通过挂载(mount)，映射到文件系统中的文件，体现了linux系统中万物皆为文件的思想，
+	同时通过卸载(umount)，移除磁盘分区的映射。
+	
+	linux硬盘分IDE硬盘和SCSI硬盘，目前基本上是SCSI硬盘
+	磁盘分区标识:
+	1.	对于IDE硬盘，驱动器标识符为"hdx",其中"hd"表示IDE硬盘类型;"x"表示盘号(a为基本盘，b为基本从属盘，
+		c为辅助主盘，d为辅助从属盘); "~"表示分区，前四个分区用数字1到4表示，分别为主分区或扩展分区，
+		从5开始就是逻辑分区。例如：hda3表示IDE硬盘上基本盘的第三个主分区或扩展分区。
+		
+	2.	对于SCSI硬盘，驱动器标识为"sdx",其中"sd"表示SCSI硬盘类型,"x"的表示方法和IDE一致。
+	
+	使用 lsblk -f 可以查看当前linux系统的磁盘分区信息，使用 lsblk 可查看分区大小
+	sda表示分区情况，如sda1，sda2等
+	FSTYPE: 分区类型 ，如xfs,sawp等
+	uuid :唯一标识
+	MOUNTPOINT : 挂载点，即文件系统中的文件目录
+	
+	挂载案例：
+		添加一块2G硬盘sdb，挂载到/home/newdisk
+	步骤：
+		1.虚拟机添加硬盘
+			虚拟机 -> 设置 -> 添加 -> 硬盘 		
+		2.分区
+			fdisk /dev/sdb -> m -> n -> p -> 1 -> w 
+			(/dev:管理设备。将硬件映射成文件，通过文件管理设备)		
+		3.格式化
+			mkfs -t ext4 /dev/sdb1
+		4.挂载
+			1.创建newdisk目录 ： mkdir /home/newdisk
+			2.进行挂载 : mount /dev/sdb1 /home/newdisk
+			这种挂载重启后将无效化，即临时挂载			
+		  卸载:
+			umount /dev/sdb1
+		5.设置可以自动挂载(永久挂载)
+			1. 修改配置文件 ： vim /etc/fstab 
+			2. 在配置文件中添加 ： /dev/sdb1      /home/newdisk  ext4  defaults 0 0
+			3. mount -a
+		
+		如果重启后进入emergency mode ，输入root密码然后修改/etc/fstab，删掉之前添加的挂载信息
+	
+		
+		
+		
+		

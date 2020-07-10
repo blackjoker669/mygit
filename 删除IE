@@ -1,0 +1,6 @@
+安装SQLyog - 64 bit软件后，自动在桌面上创建了Internet Explorer启动图标，还不能通过点击右键进行删除。
+1.从开始或者按WIN+R打开运行，输入REGEDIT，打开注册表编辑器；
+2.定位到注册表：HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Desktop\NameSpace
+3.导出这个键值做备份；
+4.用记事本打开刚才的注册表，用查找功能查找Internet Explorer，可以看到控件号是{B416D21B-3B22-B6D4-BBD3-BBD452DB3D5B}（可能机器不同号不同，所以要麻烦一下）；
+5.找到对应的控件号，删除这个键值，这样就OK了。

@@ -1,0 +1,99 @@
+在InnoDB的.ibd文件中,存储了聚簇索引(即原表数据)和辅助索引数据
+
+通过辅助索引查询数据时，会先把辅助索引需要的数据列读取到内存buffer pool，回表时会将聚簇索引读取到内存中。
+如果发生了插入insert操作，聚簇索引会立即更新索引树，而辅助索引的更新会先放入change buffer缓冲区;
+当查询新插入的数据时，辅助索引会进行merge(合并操作)，在内存中即可查询到新的数据。
+
+desc select * from table;
+执行计划显示结果的字段
+table   : 此次查询涉及到的表
+type    : 查询类型,全表扫苗-ALL，索引扫苗-ref
+possible_keys : 可能用到的索引
+key     : 选择的索引
+key_len : 索引覆盖长度
+rows    : 此次查询需要扫描的行数
+Extra   : 额外的信息
+
+执行计划显示结果的介绍
+1.table
+此次查询涉及到的表,针对多表连接查询，定位问题表。
+2.type
+全表扫描: -ALL
+例如:
+	desc select * from table; 								#无条件查询
+	desc select * from table where 1 = 1; 					#无条件查询
+	desc select * from table where name like '%zc%"; 		#前后都加%的模糊查询
+	desc select * from table where name not in ('zs','ls'); # not in 条件查询
+
+索引扫描: index < range < ref < eq_ref < const(system)
+	1.index : 全索引扫描,遍历整个索引树
+		desc select name from table ;   		#name列为辅助索引
+		
+	2.range : 索引范围查询, > < >= <= 、like 、in 、or、 between..and 、not in等条件
+		desc select * from table where id > 1;                  #主键列条件查询
+		desc select * from table where name like 'zs%";			#非主键模糊查询
+		desc select * from table where id in (1,3);   			#主键in条件查询
+		可通过 union all优化 .
+	
+	3.ref : 辅助索引等值查询
+		desc select id name from table where name = 'zs';   #name列为辅助索引
+	
+	4.eq_ref ： 多表连接中，非驱动表连接条件是主键或唯一键。
+		A join B on A.xx = B.yy;
+		xx和yy字段类型不同会导致不走索引
+	
+	5.const : 聚簇索引等值查询，性能最高
+		desc select * from table where id =1; 
+		
+3.possible_keys : 所有和此次查询有关的索引。
+
+4. key : 此次查询选择的索引。
+
+5. key_len : 联合索引的覆盖长度
+	例如： index idx(a,b,c)   -> a ab abc
+	全部覆盖:
+	select * from table1 where a =  and b =  and c=
+	select * from table1 where a in  and b in  and c in
+	select * from table1 where b = and  c=  and a = 
+	select * from table1 where a= and b= order by c 
+	部分覆盖:
+	select * from table1 where a=  and b= 
+	select * from table1 where a=
+	select * from table1 where a=  and c=
+	不覆盖:
+	
+	数据长度受到 数据类型和字符集 影响，按最大预留长度字节计算。
+	数字:				not null		没有not null
+		tinyint 		1字节			1+1字节	(额外的一个字节存储是否为null的标记信息)
+		int 			4字节			4+1字节
+		bigint 			8字节			8+1字节
+	
+	字符类型 ：utf8中， 一个字符最大占3个字节； utf8mb4 一个字符最大占4个字节
+	
+							not null		没有not null
+		char(10)			3*10			3*10+1(额外的一个字节存储是否为null的标记信息)
+		varchar(10)			3*10+2 			3*10+3
+
+	如 : name char(10) not null 30字节
+		 name char(10) 31字节
+		 name varchar(10) not null 32字节
+		 name varchar(10) 33字节
+	
+	例:
+		create table t1 (
+		a int not null,     	 #4+1字节
+		b int ,				 	 #4字节
+		c char(10),			 	 #4*10字节  (utf8mb4字符集)
+		d varchar(10) not null); #4*10+3字节
+		
+		alter table t1 add index idx(a,b,c,d);
+		
+		desc select * from t1 where a=1 and b=1 and c='1' and d='1';
+		显示key_len = 92;
+
+6.	Extra  : 额外的信息
+	using filesort: 表示此次查询使用到了额外的文件排序，说明在查询中的排序操作没有用到索引: order by, group by, distinct..
+	
+	多条件查询如where 条件1 order by 条件2 , 如果要使用索引排序，必须在条件1和条件2建立联合索引。
+	
+	

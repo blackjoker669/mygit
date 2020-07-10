@@ -1,0 +1,63 @@
+什么是集群：
+	redis集群实现了对redis的水平扩容，即启动N个redis节点，将整个数据库分布存储在这N个节点中，每个节点存储总数据的1/N
+	
+	redis集群通过分区(partition)来提高一定程度的可用性(availability):即使集群中有一部分节点失效或者无法进行通讯，集群也
+	可以继续处理命令请求。
+	
+	1.安装ruby环境： yum install ruby
+	2.设置多个redis服务器，拷贝多个redis.conf文件
+		1.开启后台服务：daemonize yes
+		2.指定pid文件名字
+		3.指定端口
+		4.Log文件名字
+		5.Dump.rdb名字
+		6.关闭aof
+	
+	3.添加集群配置：
+		cluster-enabled yes  : 打开集群模式
+		cluster-config-file nodes-6379.conf  : 设置节点配置文件
+		cluster-node-timeout 15000 :设定节点失联时间(毫秒)，超过该时间，集群自动进行主从切换。
+	4.进入myRedis目录启动多个集群服务器:
+		redis-server redis6380.conf
+		redis-server redis6381.conf
+		redis-server redis6382.conf
+		redis-server redis6389.conf
+		redis-server redis6390.conf
+		redis-server redis6391.conf
+		(如果出现no such file or direction 则检查include引用的配置文件中的 dir 是否没修改)
+	5.合体：
+		执行文件(redis5.0版本之后) : 
+		./redis-cli --cluster create 192.168.80.128:6380 192.168.80.128:6381 192.168.80.128:6382 192.168.80.128:6389 192.168.80.128:6390 192.168.80.128:6391 --cluster-replicas 1
+		(5.0版本之前):
+		./redis-trib.rb create --replicas 1 192.168.80.128:6380 192.168.80.128:6381 192.168.80.128:6382 192.168.80.128:6389 192.168.80.128:6390 192.168.80.128:6391
+		(如果报错"cannot load such file -- redis(loadError)"，错误原因可能是ruby版本过低,需要升级)
+	6.以集群的方式进入客户端 : redis-cli -c -p 端口号
+	
+	分配原则：尽量保证每个主数据库运行在不同的ip地址，每个从库和主库步骤一个ip地址上高
+	replicas 1 : 表示为每个主节点创建1个从节点
+	slots:一个redis集群包括16384个插槽(hash slot),数据库中每个键都属于这16384个插槽的其中一个，
+	集群使用公式CRC16(key)%16384来计算键key属于哪个槽，其中CRC16(KEY)用来计算key的CRC16校验和。
+	
+	插槽slot可以复用，即一个插槽可以放置多个键值对。
+	不在一个 slot下的键值，不能使用mget、mset等多建操作。
+	可以使用{}来定义组的概率，使同组的key放置在同一个服务器的相同slot中。
+	
+	如果主节点下线，从节点会升级为主节点(哨兵)
+	如果某一段插槽的主从节点都宕机了，默认情况下redis将不能提供服务。
+	在配置文件中的参数 ： cluster-require-full-coverage 默认为开启状态
+	即当所有slot都正常的时候才能对外提供服务
+	
+	
+	集群操作:
+		1.cluster keyslot <key> : 计算键key应该被放置在哪个插槽上。
+		2.cluster countkeysinslot <slot> : 返回插槽slot目前包含的键值对数量。
+		3.cluster getkeysinslot <slot> <count> : 返回count个slot插槽中的键
+
+	redis-cluster把所有的物理节点映射到[0-16383]slot上，由cluster 负责维护
+	redis 集群中内置了 16384 个哈希槽，当需要在 redis 集群中放置一个 key-value 时，
+	redis 先对 key 使用 crc16 算法算出一个结果，然后把结果对 16384 求余数，
+	这样每个 key 都会对应一个编号在 0-16383 之间的哈希槽，
+	redis 会根据节点数量大致均等的将哈希槽映射到不同的节点
+
+		
+		

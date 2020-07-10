@@ -1,0 +1,83 @@
+MySQL用户管理
+MySQL的所有信息存储在表中，Linux所有信息存储在文件中
+
+*查询用户名，主机，密码(加密字段,密码一样，加密字段也一样)
+select user,host,authentication_string from mysql.user;
+
+*创建用户（无密码）
+create user Bbigboy@'localhost';
+*创建用户，并设置密码
+create user Bbigboy@'192.168.1.101' identified by '123';
+注意：
+	在8.0版本一枪，是可以通过grant命令，建立用户并授权
+
+*修改用户密码
+alter user Bbigboy@'localhost' identified by '123';
+
+*删除用户
+drop user Bbigboy@'localhost';
+
+
+MySQL权限管理
+	与linux的权限针对文件不同，MySQL的权限是用户对数据库有哪些管理能力。
+	
+	在MySQL中权限变现为具体的命令。在Linux中权限表现为文件的读写执行RWX。
+	
+MySQL查询当前权限:
+	show privileges;
+
+授权、回收权限操作
+语法:
+	8.0之前:
+	grant 权限 on 对象 to 用户 identified by '密码';
+	8.0之后:
+	create user 用户 identified by '密码';
+	grant 权限 on 对象 to 用户;
+	
+	grant 权限1,权限2... on 对象 to 用户 identified by '密码';
+	
+授权形式(31种权限):
+	ALL (所有权限)  ：管理员权限
+	权限1、权限2、权限3... : 普通用户(业务用户，开发用户)
+	grant option : 给别的用户授权的权利 
+		grant 权限1,权限2... on 对象 to 用户 identified by '密码' with grant option;
+		
+授权对象: 库.表
+*.*       : 类似Linux系统的chmod -R 755 /			管理员			
+Bbigboy.* : 类似Linux系统的chmod -R 755 /Bbigboy	普通用户
+Bbigboy.table1 : 类似Linux系统的chomd -R 755 /Bbigboy/table1
+
+授权例子
+	例1：创建并授权管理员用户Bbigboy,能够通过192.168.1.%网段登录并管理数据库
+	grant all on *.* to Bbigboy@'192.168.1.%' identified by '123' with grant option;
+	例2: 查询用户权限
+	show grants for Bbigboy@'192.168.1.%';
+	select * from mysql.user\G
+
+回收权限:
+	revoke 权限 on 对象 from 用户;
+	revoke create,insert on Bbigboy.table1 from Bbigboy@'localhost';
+	
+超级管理员(root@'localhost')忘记密码如何处理？
+	操作思路:关闭连接层的用户验证模块
+	1.跳过用户验证
+	--skip-grant-tables
+	2.跳过TCP/IP连接
+	--skip-networking
+
+方法1：
+	service mysqld start --skip-grant-tables
+	然后直接登录mysql即可，不需要密码
+方法2：
+	mysqld_safe --skip-grant-tables --skip-networking &
+	只允许本机无密码登录，禁止远程无密码登录
+	
+登录之后修改密码:
+	首先刷新权限(加载授权表)
+	flush privileges;
+	然后修改密码
+	alter user root@'localhost' identified by '新密码';
+
+重启后使用新密码登录即成功重置密码
+	
+	

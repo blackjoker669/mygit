@@ -1,0 +1,48 @@
+自定义参数映射:<resultMap>
+
+第一种方式:
+ 	<resultMap type="Emp" id="empMap">
+ 		<id column="eid" property="eid"/>
+ 		<result column="ename" property="ename"/>
+ 		<result column="age" property="age"/>
+ 		<result column="sex" property="sex"/>
+ 		<result column="did" property="dept.id"/>
+ 		<result column="dname" property="dept.dname"/>
+ 	</resultMap>
+	
+	column:数据库字段名
+	property:属性名
+	<id>:主键映射关系
+	<result>:sql结果映射关系
+ 	
+第二种方式:
+	<resultMap type="Emp" id="empMap">
+ 		<id column="eid" property="eid"/>
+ 		<result column="ename" property="ename"/>
+ 		<result column="age" property="age"/>
+ 		<result column="sex" property="sex"/>
+ 		<association property="dept" javaType="Dept">
+			<id column="dname" property="did">
+			<result column="dname" property="dname"
+		</association>
+ 	</resultMap>
+	
+分步查询：
+	<association property="dept" select="com.mybatis.mapper.DeptMapper.getDeptById" column="did"/>
+	*select:分步查询的映射接口的方法，即sql语句的id属性映射，但是要加接口的全限定名
+	*column:传入分步查询的参数，数据库字段名，必须是从上一步数据库查询出来的字段之一
+	*property:属性名
+	<resultMap type="Emp" id="empMapStep">
+ 		<!-- <id>：主键映射关系  column:数据库字段名  property:属性名-->
+ 		<id column="eid" property="eid"/>
+ 		<result column="ename" property="ename"/>
+ 		<result column="age" property="age"/>
+ 		<result column="sex" property="sex"/>
+ 		<association property="dept" select="com.mybatis.mapper.DeptMapper.getDeptById" column="did"/>
+ 	</resultMap>
+ 	
+ 	<select id="getEmpStep" resultMap="empMapStep">
+ 		<!-- Emp getEmpStep(String eid); -->
+ 		select eid,ename,age,sex,did from emp where eid = #{eid}
+ 	</select>
+

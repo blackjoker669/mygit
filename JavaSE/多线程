@@ -1,0 +1,121 @@
+cpu：由PC、寄存器和ALU组成
+PC: program counter 程序计数器，用于记录线程执行的进度，存放了下一条指令所在单元的地址。
+ALU：arithmetic and logic unit 算术逻辑单元，是CPU进行运算的执行单元
+寄存器:CPU内部的数据临时存储单元
+
+超线程：线程切换的速度更快
+	1.在一个实体CPU中，提供两个逻辑线程。
+	2.一个ALU对应多个PC和寄存器，即四核八线程
+
+进程和线程：
+	1.进程是系统进行资源分配和调度的基本单位
+	2.线程是系统执行的基本单位
+
+缓存行cache line ：  
+	1.从缓存中取数据时，按块读取，将目标数据所在的内存块进行读取，这一块内存就叫缓存块(一般64字节)
+	2.CPU读取数据是以缓存行为基本单位
+	3.缓存行是2的整数幂个连续字节，一般为32-256个字节。最常见的缓存行大小是64个字节。   
+	
+JIT : just in time compiler 及时编译器
+JSR : Java Specification Requests Java规范要求
+
+系统底层如何保证有序性：	
+	1.内存屏障sfence、mfence、lfence等系统源语
+	2.锁总线
+	
+volatile底层原理 :
+	标记了volatile，cpu在操作数据时，会保证缓存行内部数据的一致性，当其中一个线程修改了缓存行内的值，会通知另一个线程
+	1.java代码层面: volatile i 使用valatile修饰变量
+	2.字节码层面: ACC_VOLATILE 标记字段
+	3.JVM层面： 加内存屏障，在屏障两边的指令不可以重排序，保证了有序性
+		1.在vilatile写操作前后加屏障
+		2.在vilatile读操作前后加屏障
+	4.hotspot实现： bytecodeinterpreter.cpp
+	
+MESI Cashe一致性协议，一般用在Intel核心cpu
+	
+创建线程的4种方式
+	1.继承Thread类，重写run()方法
+	2.实现Runnable接口，实现run()抽象方法
+	3.使用FutureTask类和Callable接口，以call()方法为线程执行体
+	4.线程池
+		线程池的返回值ExecutorService,是Java提供的用于管理线程池的类。该类的两个作用：控制线程数量和重用线程
+		通过Executors工厂类来创建线程池
+			1.newFixedThreadPool(int nThreads):创建一个可重用的、固定线程数的线程池,以共享的无界队列方式来运行这些线程
+			2.newCachedThreadPool(): 创建一个具有缓存功能的线程池，先查看池中有没有以前建立的线程，如果有，就直接使用。如果没有，就建一个新的线程加入池中，缓存型池子通常用于执行一些生存期很短的异步型任务
+			3.newSingleThreadExecutor():创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行
+			4.newScheduledThreadPool(int n)：创建一个定长线程池，支持定时及周期性任务执行
+			
+线程的创建和启动
+	所有的线程对象必须是Thread类或其子类的实例
+	1.run()方法是线程的执行体
+	2.线程的启动通过实例方法start()
+	3.实现Runnable接口时，需要重写run()方法，线程的启动需要Runnable的实现类对象作为target
+		class runThread implements Runnable{...}
+		var rt = new runThread();
+		new Thread(rt,"线程1").start();
+		new Thread)rt,"线程2").start();
+		线程1和线程2将共享线程类runThread的实例变量
+	4.继承FutureTask类，并用FutureTask类包装Callable对象：
+		public class FutureThread{
+			public static void main(String[] args){
+				FutureTask<Integer> task = new FutureTask<>((Callable<Integer>)()->{
+				int i =1;
+				System.out.println("Call()方法");
+				return i;
+				});
+				new Thread(task,"线程1").start();
+			}
+		}
+
+控制线程:
+	1.join线程:让一个线程等待另一个线程的执行完成
+	2.sleep()会释放锁
+	3.wait()不会释放锁
+	
+ThreadLocal
+	threadlocal是一个线程内部的存储类，可以在指定线程内存储数据，数据存储以后，只有指定线程可以得到存储数据。
+	1.ThreadLocal.ThreadLocalMap threadLocals = null;
+	每个Thread对象在内部都有一个引用指向一个ThreadLocalMap对象，这个对象存放Key-Value键值对，
+	2.ThreadLocal t = new ThreadLocal(); t.set("value");
+	当使用ThreadLocal对象t的set()方法时，会调用createMap(t, value)或Thread内部的ThreadLocalMap的set方法,将对象t作为Key，set方法传入的参数作为Value放入ThreadLocalMap
+	public void set(T value) {
+        Thread t = Thread.currentThread();
+        ThreadLocalMap map = getMap(t);
+        if (map != null) {
+            map.set(this, value);
+        } else {
+            createMap(t, value);
+        }
+    }
+	3.ThreadLocalMap中存放的Entry对象继承了弱引用，即Entry中的Key使用的是ThreadLocal的弱引用。
+		
+	如果Entry是强引用：	
+		当一个线程调用ThreadLocal对象的set方法设置value时，当前线程的ThreadLocalMap就会存放一个Entry，这个Entry的Key为Threadlocal的弱引用，value是set方法传入的值。
+		如果当前线程一直存在且没有调用该ThreadLocal的remove方法，如果这个时候还有其它的引用指向ThreadLocal对象，那么当前线程中的ThreadLocalMap中会一直存放ThreadLocal的引用以及Value对象的引用，这样就造成了内存泄露。
+	
+	如果Entry是弱引用：
+		当该ThreadLocal不存在其它的强引用时，由于线程的ThreadLocalMap存放的Key是ThreadLocal的弱引用，所以该ThreadLocal在GC的时候就会被回收，key的值变为null，但是对应的value依然存在，
+		这样就存在一个无法访问的Key为null而value不为null的Entry，依然可能会造成内存泄露。
+	
+	解决ThreadLocal内存泄露：
+		每次对ThreadLocal变量的value使用完毕及时调用remove方法避免内存泄漏。
+	
+	
+	
+ThreadLocal特性
+	ThreadLocal和Synchronized都是为了解决多线程中相同变量的访问冲突问题，不同的点是：
+
+	1.Synchronized是通过线程等待，牺牲时间来解决访问冲突
+	2.ThreadLocal是通过每个线程单独一份存储空间，牺牲空间来解决冲突，并且相比于Synchronized，ThreadLocal具有线程隔离的效果，只有在线程内才能获取到对应的值，线程外则不能访问到想要的值。
+
+	正因为ThreadLocal的线程隔离特性，使他的应用场景相对来说更为特殊一些。
+	在android中Looper、ActivityThread以及AMS中都用到了ThreadLocal。
+	当某些数据是以线程为作用域并且不同线程具有不同的数据副本的时候，就可以考虑采用ThreadLocal。
+	
+强引用:普通对象引用，当对象失去引用时，被垃圾回收器回收	
+软引用:当堆内存空间不足时，GC会将软引用指向的对象回收，通常用于对内存敏感的程序。
+弱引用:如果一个对象只有弱引用，只要被GC访问就会被回收
+虚引用:虚引用必须和引用队列联合使用，用于跟踪对象被垃圾回收的状态。
+
+	

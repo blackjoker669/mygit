@@ -1,0 +1,122 @@
+SSM整合步骤：
+1.导入jar包：
+	spring: 
+		1.IOC容器jar包：
+			commons-logging-1.2.jar
+			spring-beans-5.0.2.RELEASE.jar
+			spring-context-5.0.2.RELEASE.jar
+			spring-core-5.0.2.RELEASE.jar
+			spring-expression-5.0.2.RELEASE.jar
+		2.AOP切面jar包：
+			aspectjrt.jar
+			aspectjtools.jar
+			aspectjweaver.jar
+			spring-aop-5.0.2.RELEASE.jar
+			spring-aspects-5.0.2.RELEASE.jar
+		3.JdbcTemplate的jar包：
+			spring-jdbc-4.0.0.RELEASE.jar
+			spring-orm-4.0.0.RELEASE.jar
+			spring-tx-4.0.0.RELEASE.jar
+	    4.数据库驱动和druid数据源：
+			druid-1.0.9.jar
+			mysql-connector-java-8.0.19.jar
+	springMVC:
+		spring-web-5.0.2.RELEASE.jar
+		spring-webmvc-5.0.2.RELEASE.jar
+	mybatis:
+		log4j-1.2.17.jar
+		mybatis-3.5.2.jar
+		mysql-connector-java-8.0.19.jar
+	第三方支持jar包：
+		jackson、jstl、pageHelper、mybatis-spring
+
+2.搭建springMVC：
+	1.web.xml:
+		DispatcherServlet
+		HiddenHttpMethodFilter
+		CharacterEncodingFilter
+	2.springMVC.xml:
+		扫描控制层组件：<context:component-scan base-package=""></context:component-scan>
+		视图解析器 ：<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+						<property name="prefix" value="/WEB-INF/View/"></property>
+						<property name="suffix" value=".jsp"></property>
+					</bean>
+		Default-Servlet-handler默认servlet处理静态资源 ： <mvc:default-servlet-handler/>
+		MVC驱动 ： <mvc:annotation-driven />
+		可选：MultipartResolver，拦截器
+
+3.整合spring和springMVC：
+	使用监听器，在ServletContext加载时，通过监听器加载spring的配置文件，实现spring和springmvc的整合
+	在web.xml核心配置文件中配置spring容器提供的监听器:ContextLoaderListener:
+
+	1.配置<context-param>标签，设置spring配置文件的位置和名称：conf目录下文件名为spring.xml
+		<context-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>classpath:spring.xml</param-value>
+		</context-param>
+		
+	2.使用spring自带的监听器ContextLoaderListener,在web.xml中配置<listener>:
+		<listener>
+			<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+		</listener>
+	
+	3.依次配置CharacterEncodingFilter、HiddenHttpMethodFilter、DispatcherServlet
+	
+	4.分别配置springMVC和spring的配置文件
+		spring.xml：
+			1.扫描Dao层和Service层组件
+			2.配置事务管理器
+		springMVC：
+			1.扫描Controller层组件
+			2.配置视图解析器
+			3.使用默认servlet加载静态资源
+			4.开启MVC驱动
+	
+	5.在Controller层中的@RequestMapping方法中传入HttpSession，并获得服务器ServletContext对象，进而初始化springIOC容器
+		@Controller
+		public class MyController {
+
+			@RequestMapping("/testListener")
+			public ModelAndView testListener(HttpSession session) {
+				ServletContext servletContext = session.getServletContext();
+				ApplicationContext ac = (ApplicationContext) servletContext.getAttribute("ac");
+				Teacher teacher = ac.getBean("teacher", Teacher.class);
+				System.out.println(teacher);
+				ModelAndView mv = new ModelAndView();
+				mv.setViewName("success");
+				return mv;
+			}
+		}
+		
+4.搭建mybatis：
+	1.创建Mybatis的核心(全局)配置文件:mybatis-config.xml， 并进行配置: 连接数据库(引入jdbc.propertis文件)
+	2.配置映射器(mapper接口和mapper映射文件)
+	3.获取mybatis操作数据库的会话对象SqlSession并使用
+		InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+		SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+		SqlSession sqlSession = factory.openSession();
+		XxxMapper mapper = sqlSession .getMapper(XxxMapper.class);
+		Xxx xxx = mapper.getXxxByUid("1");
+		System.out.println(xxx);
+		
+5.spring整合mybatis
+	spring.xml:
+		1.引入properties文件：<context:property-placeholder location="jdbc.properties"/>
+		2.配置DataSource数据源：
+			<bean id="datasource" class="com.alibaba.druid.pool.DruidDataSource">
+				<property name="driverClassName" value="${jdbc.driver}"></property>
+				<property name="url" value="${jdbc.url}"></property>
+				<property name="username" value="${user}"></property>
+				<property name="password" value="${password}"></property>
+			</bean>
+		3.事务管理器：
+			<bean id="manager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+				<property name="dataSource" ref="datasource"/>
+			</bean>
+		4.开启事务注解驱动：<tx:annotation-driven transaction-manager="manager"/>
+			*即启动@Transactional注解进行事务管理
+			*开启事务注解驱动之前需要扫描组件
+		5.管理SqlSession，将SqlSessionFactoryBean注入IOC容器
+		6.MapperScannerConfigurer
+
+6.REST CRUD

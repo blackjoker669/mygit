@@ -1,0 +1,49 @@
+find指令:
+	从指定目录向下递归遍历每个子目录，将满足条件的文件或目录显示在终端
+	
+	基本语法：
+	find [搜索范围] [选项]
+	常用选项：
+	-name<查询方式>   :按指定文件名查看文件
+	-user<用户名>     :查找属于指定用户名的所有文件
+	-size<文件大小>	  :按指定的文件大小查找文件
+	
+	1.查找home目录下的名为dog的目录或文件
+	find /home -name dog
+	2.查找home目录下，用户名为blackjoker66的文件
+	find /home -user blackjoker66
+	3.查找linux系统中大于20m的文件( +n大于 -n小于 n等于)
+	find / -size +20M
+	4.查找linux系统中后缀名为.txt的文件
+	find / -name *.txt
+	
+which 文件名
+
+locate指令:
+	快速定位文件路径。locate指令利用系统事先建立的所有文件名称及路径的locate数据库事先快速定位给定的文件。
+	Locate指令无需 遍历整个文件系统，查询速度较快。为了保证查询结果的准确度，管理员必须定期更新locate时刻。
+	
+	基本语法：
+		locate 文件名
+	细节：由于locate指令基于数据库进行查询，所以第一次运行前，必须使用updatedb指令创建locate数据库。
+	1.使用locate快速定位a.txt文件所在目录
+	updatedb    (先创建locate数据库)
+	locate a.txt  (定位包含a.txt的文件)
+	
+grep指令和管道符号|
+	grep过滤查找，管道符"|"表示将前一个命令的处理结果输出传递给后面的命令进行处理。
+	
+	基本语法：	
+	grep [选项] 查找内容 源文件
+	常用选项:
+	-n  :显示行号
+	-i  :忽略字母大小写
+	
+	查看home目录下a.txt文件内容里“as”所在行，并显示行号:
+		cat /home/a.txt | grep -n as 
+或者:   grep -n as /home/a.txt 
+
+
+	
+	
+	

@@ -1,0 +1,50 @@
+@ImportResource(location={"classpath:spring.xml"})
+自定义spring.xml配置文件并导入，不推荐
+
+@Configuration使用配置类来进行自定义配置：
+
+@Configuration
+public class AppConfig{
+	
+	@Bean
+	public StudentService studentService(){
+		StudentService stuService = new StudentService();
+		return stuService;//返回<bean class="" id="方法名" />
+	}
+}
+
+多环境切换（profile）
+	多个配置文件：
+	1.application.properties
+	2.application-dev.properties
+	3.application-test.properties
+	
+默认会读取application.properties
+若要切换到application-dev.properties，则在该配置文件中配置:spring.profiles.active=dev
+若要切换到application-test.properties，则在该配置文件中配置：spring.profiles.active=test
+
+在yml文件中多环境切换:
+server:
+	prot: 8881
+spring: 
+	profiles: 
+		active: dev
+---
+server:
+	prot: 8882
+spring: 
+	profiles: dev
+---
+server:
+	prot: 8883
+spring: 
+	profiles: test
+	
+动态切换环境：
+	命令行方式：
+	STS中右键的Run Configuration - Argument - program Argument
+		--spring.profiles.active=dev
+
+ 
+maven打jar包方式:
+	1.右键项目->run as -> maven build-> Goals: clean package

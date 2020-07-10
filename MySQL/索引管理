@@ -1,0 +1,39 @@
+1.什么时候创建索引？
+	按照业务需求创建合适的索引。并不是所有的列都建立索引。
+	将索引建立在经常使用在where ,group by ,order by ,join on... 的条件列上。
+2.为什么不能乱建索引？
+	索引太多，难以维护。
+	1.在表数据更新时，会导致索引的频繁更新，从而阻塞很多正常的业务更新请求。
+	2.索引过多，会导致优化器选择出现偏差。
+
+	DML语句更新数据时，索引的更新：
+	1. insert 插入一行数据时，聚簇索引会立即更新
+	2. 对于辅助索引，不是实时更新的。
+	
+	5.5版本之后在InnoDB内存结构中，加入了insert buffer(会话级别），现在改为change buffer。
+
+3.管理命令
+	1. 查看表的索引情况
+		desc TABLE_NAME;
+		KEY ：PRI聚簇索引  MUL辅助索引 UNI唯一索引
+		详细显示索引信息
+		show index from TABLE_NAME;
+	
+	2.建立索引
+		1.分析业务语句
+		select * from TABLE_NAME where name = 'xx';
+		
+		2.如果name列在条件语句中频繁使用，则根据name列来创建辅助索引
+			方式1. alter table TABLE_NAME add index idx_na(name);
+			方式2. create index idx_na on TABLE_NAME(name);
+			
+		3.删除索引
+			方式1. alter table TABLE_NAME drop index idx_na;
+			方式2. drop index idx_na on TABLE_NAME;
+		
+4.索引测试
+	explain select * from TABLE_NAME where name = 'xx';
+		type : 扫描类型，ALL-全盘扫描，ref-使用索引
+		key  : 索引名
+		key_len : 索引长度
+		

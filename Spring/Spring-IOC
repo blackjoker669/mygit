@@ -1,0 +1,479 @@
+框架:
+	框:具有一定的约束性
+	架:具有一定的支撑性
+	框+架：具有约束性的支撑完成业务功能的半成品项目
+
+SSM= spring+springMVC+mybatis
+Linux + redis
+
+封装:减少代码量,简便开发
+struts1(封装了servlet,bug多),struts2(封装了filter),hibernate,spring,springMVC,mybatis
+MVC框架:struts1,struts2,springMVC
+持久层框架:hibernate(全自动),mybatis(半自动)
+
+EJB是的Enterprise Java Beans技术的简称, 又被称为企业Java Beans
+
+spring是一个IOC(控制反转)和AOP(面向切面编程)容器框架
+spring的优良特性:
+1.轻量级(可向下兼容):基于spring开发的应用中的对象可以不依赖于spring的API
+2.依赖注入:DI——Dependency Injection,控制反转(IOC)最经典的具体实现
+3.面向切面编程AOP:Aspect Oriented Programing
+4.容器：spring是一个容器，因为它包含并且管理应用对象的生命周期
+5.组件化:spring实现了使用简单的组件配置组合成一个复杂的应用。在spring中可以使用XML和java注解组合这些对象
+6.一站式:在IOC和AOP的基础上可以整合各种企业应用的开源框架和优秀的第三方类库
+
+语言的魅力在于他明知你说的话是骗他，他也相信。
+
+ORM:对象关系映射 Object Relation Mapping,将dao操作查询的数据映射成JavaBean对象
+STS：spring tools suits
+
+一、DI依赖注入
+
+	<bean>:定义spring所管理得到一个对象
+	*id:该对象的唯一标识，不能重复，通过类型获取bean时可不设置
+	*class:此对象所属类的全限定名
+	<property>:为对象的某个属性赋值
+	*name:属性名,即setter方法所赋值的属性名
+	*value:属性值
+	（通过反射Class.forName()获取类信息，必须有无参构造器）
+	1.在spring配置文件applicationContext.xml中配置bean对象(把java对象交给spring容器管理)
+	<!-- 
+		scope: bean的作用域         
+			1.prototype 多例(默认)，在使用时创建，可创建多个bean对象
+			2.singleton 单例，在spring容器初始化时，就创建一个bean对象，多次创建的bean是同一个对象
+			3.request 每次Http请求都会创建一个新的Bean，该作用域仅适用于WebApplicationContext环境
+			4.session 在同一个HTTP Session中共享一个Bean，不同的HTTP Session使用不同的Bean，仅适用与WebapplicationContext
+	-->
+	<bean class="全限定类名" id="唯一标识" scope="prototype多例">  
+		1.1设置bean的属性
+		<property name="属性名" value="属性值"></property>
+	</bean>
+	2.通过spring容器获得java对象
+	*2.1初始化容器对象
+	
+	ApplicationContext ac = new ClasspathXMLApplication("applicationContext.xml");
+	
+	*2.2通过getBean(id,类类型)获取唯一bean对象
+	T bean = ac.getBean(String bean的id,Class<T> 类的类类型);
+	
+	bean容器：
+		*顶层接口: BeanFactory
+		*子接口:
+			*ApplicationContext
+			*ConfigurableApplicationContext:扩展了close()方法,用于关闭资源
+			*WebApplicationContext:SpringMvc
+		*最底层实现类: 
+			*ClassPathXmlApplicationContext:读取当前类路径下的配置文件(相对路径)
+			*FileSystemXmlApplicationContext:读取文件系统上的配置文件(绝对路径)
+						
+	给bean的属性赋值就是依赖注入的过程:
+	
+	1.<property>：setter方式依赖注入		
+		
+	2.<constructor-arg>:有参构造器注入，spring会自动匹配合适的构造器
+		<bean id="唯一标识" class="全限定类名">
+			<constructor-arg value="参数1"></constructor-arg>
+			<constructor-arg value="参数2"></constructor-arg>
+			<constructor-arg value="参数3"></constructor-arg>
+			<constructor-arg value="参数4"></constructor-arg>
+		</bean>	
+		
+		调用指定构造方法，通过index指定参数位置，通过type指定参数类型(引用类型\基本数据类型包装类型)
+		<bean id="唯一标识" class="全限定类名">
+			<constructor-arg value="参数1"></constructor-arg>
+			<constructor-arg value="参数2"></constructor-arg>
+			<constructor-arg value="参数3" index="参数下标" type="参数类型"></constructor-arg>
+			<constructor-arg value="参数4"></constructor-arg>
+		</bean>	
+	
+	3.通过P命名空间注入依赖：
+		*命名空间规定了当前的配置文件中的标签类型	
+		<bean id="唯一标识" class="全限定类名" p:属性名="属性值" p:属性名="属性值" p:属性名="属性值"> </bean>
+	
+	4.字面量: 可通过value=""直接赋值的属性，即字面量
+		*1.可以使用字符串表示的值，可以通过value属性或value子节点的方法指定
+		*2.基本数据类型及其封装类、String等类型都可以采用字面值注入的方式
+		*3.若字面值中包含特殊字符，可以使用<![CDATA[]]>把字面值包裹起来
+		
+	5.对象(非字面量)注入:
+		1.通过ref引用一个bean标签对象的id属性来注入对象属性依赖
+		<bean id="student1" class="com.test.spring.Student">
+			<property name="id" value="1"></property>
+			<property name="name" value="张三"></property>
+			<property name="teacher" ref="teacherId"></property>
+			//级联属性赋值:
+			<property name="teacher.tname" value="张晓辉"></property>
+		</bean>
+		<bean id="teacherId" class="com.test.spring.Teacher">
+			<property name="tid" value="12"></property>
+			<property name="tname" value="陈光培"></property>
+		</bean>
+		
+		2.通过P命名空间注入对象依赖
+		<bean id="student2" class="com.test.spring.Student" p:id="2" p:name="李四" p:teacher-ref="teacherId"> </bean>
+
+		3.内部bean:不能被其他外部bean的ref引用注入依赖，只能在当前bean中使用
+			<property name="teacher">
+				<bean id="t1" class="com.test.spring.Teacher">
+					<property name="tid" value="222"></property>
+					<property name="tname" value="陈小燕"></property>
+				</bean>
+			</property>
+		
+	*集合属性赋值
+		<bean id="t1" class="com.test.spring.Teacher">
+			<property name="tid" value="1"></property>
+			<property name="tname" value="黄继阳"></property>
+			<!-- 
+			private List<String> cls;
+				注入基本属性类型、String类型集合属性 
+				直接使用<value>标签
+			-->
+			<property name="cls"> 
+				<list>
+					<value>A</value>
+					<value>B</value>
+					<value>C</value>
+				</list>
+			</property>
+		</bean>
+			<!--
+				private List<Student> students;
+				注入引用类型（其他bean类型）集合(数组)属性
+			-->
+		<bean id="t2" class="com.test.spring.Teacher">
+			<property name="students"> 
+				<list>
+					<ref bean="s1"/>
+					<ref bean="s2"/>
+					<ref bean="s3"/>
+				</list>
+								<set>
+									<ref bean="s4"/>
+									<ref bean="s5"/>
+									<ref bean="s6"/>
+								</set>
+			</property>
+		</bean>
+			<!--
+				private Map<String,String> bossMap;
+				注入map集合属性
+			-->
+		<bean id="t3" class="com.test.spring.Teacher">
+			<property name="boosMap">
+				<map>
+					<entry>
+						<key> <!--键-->
+							<value>10001</value>	<!--键名-->
+						</key>
+						<value>张老师</value> <!--键值-->
+					</entry>
+					<entry>
+						<key> 
+							<value>10002</value>
+						</key>
+						<value>李老师</value> 
+					</entry>
+				</map>
+			</property>
+		</bean>
+		<!--
+			集合类型的bean：List对象
+			引入util命名空间.xsd文件，标签库文件
+		-->
+		<bean id="t3" class="com.test.spring.Teacher">
+			<property name="boosMap"></property>
+		</bean>
+		<util:list id="students">	<!-- 定义list集合类型的bean -->		
+				<ref bean="s4"/>
+				<ref bean="s5"/>
+				<ref bean="s6"/>
+		</util:list>
+		<util:map id="map">	<!--定义map结合类型的bean-->
+			<entry>
+				<key>	<!--键-->
+					<value>1001</value> <!--键名-->
+				</key>
+				<value>陈老师</value>	<!--键值-->
+			</entry>
+		</util:map>
+		
+	*FactoryBean:工厂bean
+	
+		1.实现bean工厂接口 FactoryBean<T>()
+			1.创建实体类Car
+				private String brand;
+				private Double price;
+				setBrand、setPrice;
+			2.实现工厂接口
+				public class MyFactory implements FactoryBean<Car>{
+					@override
+					public Car getObject()throws Exception{
+						Car car = new Car();
+						car.setBrand("奥迪");
+						car.setPrice(200000.0);
+						return car;
+					}
+					@override
+					public Class<?> getObjectType(){
+						return Car.class;
+					}
+					@override
+					public boolean isSingleton(){
+						return false;
+					}
+				}
+			3.配置文件进行配置
+				<bean id ="factory" class="com.test.spring.MyFactory"></bean>
+				
+			4.创建Test测试类，测试使用工厂bean
+			ApplicationContext ac = new ClassPathXmlApplicationContext("factory-bean.xml");
+			Object obj = ac.getBean("factory");  <!-- 返回bean工厂所创建的bean -->
+	
+	*bean的生命周期
+		
+		1.Spring IOC容器可以管理bean的生命周期，Spring允许在bean生命周期内特定的时间点执行指定的任务。
+		
+		2.Spring IOC容器对bean的生命周期进行管理的过程；
+			1.通过构造器或工厂方法创建bean实例，创建对象
+			2.为bean的属性设置值和对其他bean的引用，依赖注入
+			3.调用bean的初始化方法，初始化
+			4.使用bean，使用
+			5.当容器关闭时，调用bean的销毁方法，销毁
+			
+		3.在配置bean时，通过init-method和destroy-method属性为bean指定初始化和销毁
+			*定义实体类
+			public class Person{				
+				private Integer id;
+				private String sex;
+				private String name;
+				get/setID(),get/setSex(),get/setName()
+				public void init(){
+					System.out.println("初始化");
+				}
+				public void destroy(){
+					System.out.println("销毁");
+				}		
+			}
+			*配置文件中配置inte-method和destroy-method属性
+			<bean id="person" class="com.test.spring.Person" init-method="init" destroy-method="destroy">
+				<property name="id" value="1001"></property>
+				<property name="sex" value="男"></property>
+			</bean>
+			*测试方法
+				1. ClassPathXmlApplicationContext ac = new ClassPathXmlApplicationContext("life.xml");
+				2. 获取bean Person person = ac.getBean("person",Person.class);
+				3. 销毁ac.close();
+			
+		4.bean的后置处理器AfterHandler
+			1.bean的后置处理器允许在调用初始化方法前后对bean进行额外的处理
+			2.bean的后置处理器对IOC容器里的所有bean实例逐一处理，而非单一实例
+				其典型应用是：检查bean属性的正确性或根据特点的标准更改bean的属性
+			3.bean后置处理器需要实现接口:
+				org.springframework.beans.factory.config.BeanPostProcessor:在初始化方法被调用前后，
+			  Spring将把每个bean实例分别传递给上述接口的以下两个方法：
+				*postProcessBeforeInitialization(Object,String)
+				*postProcessAfterInitialization(Object,String)
+				
+				实现接口:
+					public class AfterHandler implements BeanPostProcessor{
+						
+						@override  <!--bean的初始化之前操作-->
+						public Object postProcessBeforeInitialization(Object bean,String beanName)throws BeansException{
+							Person person =(Person)bean;
+							if(person.getSex().equals("男")){
+								person.setName("张无忌");
+							}else{
+								person.setName("赵敏");
+							}
+							return person;
+						}
+						
+						@override	<!--bean的初始化之后操作-->
+						public Object postProcessAfterInitialization(Object bean,String beanName)throws BeansException{
+							return bean;
+						}
+					}
+				将后置处理器写入配置文件:
+					<bean class="com.test.spring.AfterHandler"></bean>
+					
+		5.添加bean后置处理器后bean的生命周期和处理过程
+			1.通过构造器或工厂方法创建bean实例
+			2.为bean的属性设置值和对其他bean的引用
+			3.将bean实例传给bean后置处理器的postProcessBeforeInitialization()方法
+			4.调用bean的初始化方法
+			5.将bean实例传给bean的后置处理器的postProcessAfterInitialization()方法
+			6.使用bean
+			7.当容器关闭时，调用bean的销毁方法
+			
+	*引用外部属性文件
+		1.导入相应jar包(Druid和mysql-connectorjar包)
+		2.编写配置文件datasource.xml(配置数据库连接和德鲁伊连接池)
+		<!--第一种方式加载资源文件druid.properties-->
+		<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer>
+			<property name="location" value="druid.properties"></property>
+		</bean>
+		
+		<!--第二种加载资源文件的方式,需要导入context命名空间-->
+		<context:property-placeholder location="druid.properties"/>
+		
+		
+		<!-- ${}:通过spring加载的资源文件获取目标值 -->
+		<bean id="datasource" class="com.alibaba.druid.pool.DruidDataSource">
+			<property name="driverClassName" value="${com.mysql.jdbc.Driver}"></property>
+			<property name="url" value="${jdbc.url}"></property>
+			<property name="username" value="${jdbc.username}"></property>
+			<property name="password" value="${jdbc.password}"></property>
+		</bean>
+		
+		3.获取druid数据库连接池
+		ApplicationContext ac = new ClassPathXmlApplicationContext("datasource.xml");
+		DruidDataSource ds = ac.getBean("database",DruidDataSource.class);
+		4.使用数据库连接池
+	    ds.getConnection();
+	
+	*自动装配(自动注入/自动赋值)
+		1.手动装配:对value或ref属性进行直接赋值的方式即手动装配
+		2.自动装配:根据指定的装配规则，不需要明确指定,spring自动将匹配的属性值注入bean中
+			*自动装配的属性必须是非字面量的属性
+		
+		自动装配的配置属性: 
+		<!--
+			autowire:根据某种策略自动为非字面量属性赋值
+			属性取值:
+			1.byName:根据名称自动装配,只要实例类中的属性名和非字面量<bean>中的id值相同即可自动装配
+			2.byType:根据类型自动装配,只要实体类中属性的类型和
+				非字面量<bean>的类型、直接父接口、直接父类型任意一个相同即可自动装配
+				*但只能出现一个该类型的非字面量<bean>,不然会引发NoUniqueBeanDefinitionException
+				
+			3.constructor
+			4.no
+			5.default(默认值)
+		-->
+		<bean id="emp" class="com.test.spring.Emp" autowire="default">
+			<property name="id" value="1001"></property>
+			<property name="name" value="张三"></property>
+			<property name="car" ref="Car">
+			<property name="dept" ref="Dept">
+		</bean>
+		
+		<bean id="Car" class="com.test.spring.Car">
+			<property name="id" value="6666"></property>
+			<property name="name" value="奥迪"></property>
+		</bean>
+		
+		<bean id="Dept" class="com.test.spring.Dept">
+			<property name="id" value="3344"></property>
+			<property name="name" value="开发部"></property>
+		</bean>
+		
+	*通过注解配置bean
+		*使用注解标识组件（bean）
+			1.普通组件:@Component
+				标识一个受Spring IOC容器管理的组件
+			2.持久化层组件:@Repository
+				标识一个受Spring IOC容器管理的持久化层组件
+			3.业务逻辑层组件:@Service
+				标识一个受SPring IOC容器管理的业务逻辑组件
+			4.表述层控制器组件:@Controller
+				标识一个受Spring IOC容器管理的表述层控制器组件
+			5.组件命名规则
+				1.默认情况：使用组件的简单类名首字母小写后得到的字符串作为bean的id
+				2.使用组件注解的value属性指定bean的id
+		    
+		*组件扫描
+			1.在需要被spring管理的类上标识注解
+			2.在配置文件中扫描组件,需要导入context命名空间
+			<!-- 
+				<context:component-scan>:对设置的包内加上组件注解的类作为spring的组件进行加载
+				组件：指spring中管理的bean
+				作为spring的组件进行加载: 会自动在spring的配置文件中生成相应的<bean>，
+					*这些<bean>会以类名首字母小写后的类名做为id属性值
+				base-package:需要扫描组件的包名,一般包含了被注解标识的多个子包，需要保证扫描效率
+			-->
+			<context:component-scan base-package="所有注解标识的总包名"></context:conponent-scan>
+			
+			3.使用组件扫描的包含和排除,使用前必须设置默认的扫描策略(use-default-filter)
+				*包含：include-filter，在设定的包结构下，再次通过注解或类型具体包含到某个或某几个类
+					注意:在一个都不扫描的基础上，对包含标签内的类型进行扫描
+				<!-- 默认的过滤策略use-default-filter:(关闭)false  取消扫描当前包所有类的策略 -->
+				<context:component-scan base-package="包含所有注解标识的包名" use-default-filter="false">
+					<!--  type:annotation(注解),assignable(类型)  expression:类型名    -->
+		<!--        <context:include-filter type="annotation" expression="注解的全类名"/>      -->
+					<context:include-filter type="assignable" expression="类的全类名"/>                  
+				</context:conponent-scan>
+				
+				*排除: exclude-filter, 在设定的包结构下，通过注解或类型排除某个或某些类的扫描
+					注意:在默认扫描策略的基础上，对排除标签内的类型不进行扫描
+				<!-- 默认的过滤策略use-default-filter:(开启)true 开启扫描当前包所有类的策略 -->
+				<context:component-scan base-package="包含所有注解标识的包名" use-default-filter="false">
+					<context:exclude-filter type="annotation" expression="注解的全类名"/>
+		<!--        <context:exclude-filter type="assignable" expression="类的全类名"/>           -->
+				</context:conponent-scan>
+				
+				
+		*基于注解的自动装配@Autowired
+			*在需要赋值的非字面量属性上，加上@Autowired注解
+			*被标识的属性会在配置文件中自动生成对应的<bean>，并根据byType(默认)方式自动赋值
+			*当byType实现不了装配时，会自动切换到byName，此时要求spring容器中，有一个bean的id和属性名一致
+			*若自动装配时，匹配到多个能够赋值的bean，可使用@Qualifier注解指定使用的bean
+				*@Qualifier(value="bean id")
+				*@Autowired和@Qualifier(value="bean_id")可以一起作用于一个带形参的方法上，此时
+					@Qualifier(value="bean_id")作用于形参(与bean_id相同的形参)		
+			*在使用注解自动装配时，可以给注解的value属性赋值，为自动生成的bean指定id,如：@Controller(value="aaa")
+			
+				
+				
+	错误原因：
+
+　　在系统中也有个username属性，这时系统变量覆盖了Properties中的值，这时取得username的值为系统的用户名Administrator，密码为properties中的password去查询数据库，此时用户名名和密码并不匹配就会报错。在Spring完成注入时是用 "${..}"  方式获取值完成注入的。而通过这种表达式也能直接获取到JVM系统属性..........
+
+ 
+
+			
+				
+			解决方案：
+
+　　方案一：将properties文件中的username换成user或其他就字符串就可以成功获取连接访问数据库。建议：username时敏感词汇，为了安全起见还是尽量不要使用username。
+
+　　方案二：在Spring配置文件中修改成：<context:property-placeholder location="classpath:/jdbc.properties" system-properties-mode="FALLBACK / NEVER"/>   
+
+　　　　　　添加一个system-properties-mode属性
+
+　　　　　　该属性有三个值：FALLBACK　　--- 默认值，不存在时覆盖
+
+　　　　　　　　　　　　　　NEVER　　　   --- 不覆盖
+
+　　　　　　　　　　　　　　OVERRIDE　　--- 覆盖	
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				

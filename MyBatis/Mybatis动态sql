@@ -1,0 +1,145 @@
+Mybatis采用功能强大的基于OGNL的表达式来简化操作
+OGNL(Object Graph Navigation language)对象图导航语音
+多条件查询中，缺少任意条件都将导致查询失败(空结果)
+使用<if>标签可以避免此问题，但是要在where后加一个恒成立条件1=1，方便条件拼接
+	<!-- List<Emp> getEmpListByOp(Emp emp); -->
+	<select id="getEmpListByOp" resultType="Emp">
+		select eid,ename,age,sex from emp 
+		where 1  = 1  
+		<if test="eid != null">
+			and eid = #{eid}
+		</if> 
+		<if test="ename != null and ename  !='' ">
+			and ename= #{ename}
+		</if>
+		<if test="age != null">
+			and age = #{age}
+		</if>
+		<if test="sex != null">
+			and sex = #{sex}
+		</if>	
+	</select>
+
+<set>主要用于解决修改操作中SQL语句中可能多出逗号的问题
+<where>:添加where关键字，同时去掉SQL语句前多余的and，但是不能去掉SQL语句后的and
+<trim prefix="" suffix="" prefixOverrides="" suffixOverrides="">:截取并拼接
+	prefix:在操作的SQL语句前加入某些内容
+	suffix:在操作的SQL语句后加入某些内容
+	prefixOverrides:把操作的SQL语句前的某些内容去掉
+	suffixOverrides:把操作的SQL语句后的某些内容去掉
+	<!-- List<Emp> getEmpListByOp(Emp emp); -->
+	<select id="getEmpListByOp" resultType="Emp">
+		select eid,ename,age,sex from emp 
+		<trim prefix="where" suffixOverrides="and"> 
+			<if test="eid != null">
+				 eid = #{eid} and
+			</if> 
+			<if test="ename != null and ename  !='' ">
+				 ename= #{ename} and
+			</if>
+			<if test="age != null">
+				 age = #{age} and
+			</if>
+			<if test="sex != null">
+				 sex = #{sex}
+			</if>	
+		</where>
+	</select>
+	
+<choose>:选择某一个when或otherwise拼接SQL语句
+	<when test="">:通过test 表达式拼接SQL语句
+	<otherwise>:当所有when都不符合条件时，就会选择otherwise拼接SQL语句
+	<!-- List<Emp>  getEmpListByChoose(Emp emp); -->
+	<select id="getEmpListByChoose" resultType="Emp">
+		select eid,ename,age,sex from emp 
+		where
+		<choose>
+			<when test="eid != null">
+				eid = #{eid} 
+			</when>
+			<when test="ename != null and ename  !='' ">
+				ename= #{ename}
+			</when>
+			<when test="age != null">
+				 age = #{age} 
+			</when>
+			<otherwise>
+				 sex = #{sex}
+			</otherwise>	
+		</choose> 
+	</select>
+
+<foreach>:主要用于对一个数组或集合进行循环迭代
+	collection:要迭代的几何
+	item:当前从集合中迭代出的元素     
+	open:开始字符
+	close:结束字符
+	separator:元素与元素之间的分隔符
+	index:
+		迭代List集合:index代表当前元素的索引下标
+		迭代Map集合:index代表当前元素的key
+	<select id="" resultType="">
+		select eid,ename,age,sex from emp where id in 
+		<foreach collection="list" item="eid" separator="," open="(" close=")">
+			#{eid}
+		</foreach>
+	</select>
+	
+批量操作:
+	delete:
+		1.delete from emp where eid in ();
+		<!-- Integer deleteMoreEmpByList(List<Integer> eids); -->
+		<delete id="deleteMoreEmpByList">
+			delete from emp where eid in 		
+			<foreach collection="eids" item="eid" separator="," open="(" close=")">
+				#{eid}
+			</foreach>		
+		</delete>
+		
+		2.delete from emp where eid = 1 or eid = 2 or eid = 3;
+		<delete id="">
+			delete from emp where 		
+			<foreach collection="eids" item="eid" separator="or" >
+				eid = #{eid}
+			</foreach>		
+		</delete>
+	select:
+		1.select * from emp where eid in ();
+		2.select * from emp where eid = 1 or eid = 2 or eid = 3;
+	update:
+		1.把多条数据修改为相同内容:
+			1.update emp set dept = 1 where eid in ();
+			2.update emp set dept = 1 where eid = 1 or eid = 2 or eid = 3;
+		2.把多条数据修改为不同内容(多条修改语句:
+			需要修改JDBC配置文件的url属性，添加allowMultiQueries=true字段
+			jdbc.url=jdbc:mysql://127.0.0.1:3306/ssm?allowMultiQueries=true&serverTimezone=GMT
+		update emp set ename=,age=,sex=, did= where eid = 1;
+		update emp set ename=,age=,sex=, did= where eid = 2;
+		update emp set ename=,age=,sex=, did= where eid = 3;
+		...
+		<!-- void updateMoreEmp(@Param("emps")Emp[] emps); -->
+		<update id="updateMoreEmp">
+			<foreach collection="emps" item="emp">
+				update emp set ename=#{emp.ename},age=#{emp.age},sex=#{emp.sex},did=2 where eid=#{emp.eid};
+			</foreach>
+		</update>
+		
+	insert:
+		insert into emp values(),(),()...
+		<!-- void insertMoreEmp(List<Emp> emps); -->
+		<insert id="insertMoreEmp">
+			insert into emp values
+			<foreach collection="emps" item="emp" separator="," >
+				(#{emp.eid},#{emp.ename},#{emp.age},#{emp.sex},1)
+			</foreach>
+		</insert>
+		
+动态SQL之<sql>:
+	*设置一段SQL语句片段，即公共SQL，可以被当前映射文件中所有的SQL语句访问
+		<sql id="empSelect">
+			select eid,ename,age,sex from emp 
+		</sql>
+	使用sql：
+	<select id="getAllEmp">
+		<include refid="empSelect" />
+	</select

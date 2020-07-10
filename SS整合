@@ -1,0 +1,55 @@
+Spring的配置文件在项目启动时加载且在springMVC配置文件之前加载
+监听器：监听web容器中的事件，如servletContext的生命周期
+
+整合:使用监听器，在ServletContext加载时，通过监听器加载spring的配置文件，实现spring和springmvc的整合
+
+创建spring容器提供的监听器:ContextLoaderListener:
+
+整合spring和springMVC：
+使用监听器，在ServletContext加载时，通过监听器加载spring的配置文件，实现spring和springmvc的整合
+在web.xml核心配置文件中配置spring容器提供的监听器:ContextLoaderListener:
+
+1.配置<context-param>标签，设置spring配置文件的位置和名称：conf目录下文件名为spring.xml
+	<context-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>classpath:spring.xml</param-value>
+	</context-param>
+	
+2.使用spring自带的监听器ContextLoaderListener,在web.xml中配置<listener>:
+	<listener>
+		<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+
+3.依次配置CharacterEncodingFilter、HiddenHttpMethodFilter、DispatcherServlet
+
+4.分别配置springMVC和spring的配置文件
+	spring.xml：
+		1.扫描Dao层和Service层组件
+		2.配置事务管理器
+	springMVC：
+		1.扫描Controller层组件
+		2.配置视图解析器
+		3.使用默认servlet加载静态资源
+		4.开启MVC驱动
+
+5.在Controller层中的@RequestMapping方法中传入HttpSession，并获得服务器ServletContext对象，进而初始化springIOC容器
+	@Controller
+	public class MyController {
+
+		@RequestMapping("/testListener")
+		public ModelAndView testListener(HttpSession session) {
+			ServletContext servletContext = session.getServletContext();
+			ApplicationContext ac = (ApplicationContext) servletContext.getAttribute("ac");
+			Teacher teacher = ac.getBean("teacher", Teacher.class);
+			System.out.println(teacher);
+			ModelAndView mv = new ModelAndView();
+			mv.setViewName("success");
+			return mv;
+		}
+	}
+	
+*spring和springMVC的关系:
+spring是父容器，springMVC是子容器
+规定：子容器能够调用父容器中的bean，而父容器不能调用子容器的 bean
+springMVC  				  spring							
+controller ————>    service   ————>  dao

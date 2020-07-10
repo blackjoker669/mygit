@@ -1,0 +1,81 @@
+Mybatis的一级缓存默认开启，是SqlSession级别的
+即同一个SqlSession中对于一个sql语句，执行之后就会存储在缓存中，下次执行相同的sql，直接从缓存中取
+
+@Test
+public void Test(){
+	...
+	SqlSession sqlSession = sqlSessionFactory.openSession(true);
+	EmpMapper mapper = sqlSession.getMapper(EmpMapper.class);
+	Emp emp1 = mapper.getEmpByid("1");
+	System.out.println(emp1);
+	System.out.println("***********************************");
+	Emp emp2 = mapper.getEmpByid("1");
+	system.out.println(emp2);
+}
+第一次调用mapper接口方法会输出日志信息和查询结果
+第二次调用只会输出查询结果，说明第二次调用方法没有执行Sql语句，而是从一级缓存中直接获取查询结果
+
+一级缓存失效的几种情况：
+	1.不同的SqlSession对应不同的一级缓存，即使调用相同的sql语句也不能够共享一级缓存
+	2.同一个SqlSession但是查询条件不同，一级缓存只对相同sql语句有效
+	3.同一个SqlSession两次查询期间执行了任何一次增删改操作，执行增删改操作将自动清除(刷新)缓存
+	4.同一个SqlSession两次查询期间手动清空了一级缓存，调用SqlSession.clearCache()
+	
+Mybatis二级缓存默认不开启，需要手动设置,是SqlSessionFactory级别的或者称映射文件级别,也称全局作用域缓存
+二级缓存在SqlSession关闭或提交之后才会生效,SqlSession.commit()
+为了使SqlSession对象之间共享相同的缓存，需要开启二级缓存，使用步骤如下：
+	1.在全局配置文件中开启二级缓存<setting name="cacheEnabled" value="true" />
+	2.在需要使用二级缓存的mapper映射文件中配置<cache/>标签
+	3.缓存数据所对应的POJO必须实现Serializable序列化接口
+	4.需要提交Sqlsession,即调用commit()方法
+	@Test
+	public void Test(){
+		...
+		SqlSession sqlSession1 = sqlSessionFactory.openSession(true);
+		EmpMapper mapper1 = sqlSession1.getMapper(EmpMapper.class);
+		Emp emp1 = mapper1.getEmpByid("1");
+		System.out.println(emp1);
+		sqlSession1.commit();
+		System.out.println("***********************************");
+		SqlSession sqlSession2= sqlSessionFactory.openSession(true);
+		EmpMapper mapper2 = sqlSession2.getMapper(EmpMapper.class);
+		Emp emp2 = mapper2.getEmpByid("1");
+		system.out.println(emp2);
+	}
+
+缓存的相关属性设置：
+	1.全局setting的cacheEnabled：
+		配置二级缓存的开关，一级缓存一直是打开的
+	2.select标签的useCache属性：
+		配置这个select是否使用二级缓存，默认为true。一级缓存一直是使用的
+	3.sql标签的flushCache属性：+
+		增删改默认flushCache=true，即执行增删改操作会刷新缓存，包含二级缓存和一级缓存
+		查询操作默认flushCache=false，即执行查询操作不会刷新缓存
+	4.sqlSession.clearCache():用来刷新一级缓存，但不会影响二级缓存。
+	
+第三方缓存:为了提高扩展性，Mybatis定义了缓存接口，可以通过实现Cache接口来自定义二级缓存
+	*EhCache是一个纯java的进程内缓存框架，具有快速、精干等特点，是Hibernate中默认的CacheProvider	
+	整合EhCache步骤:
+		1.导入ehcache的相关jar包
+			ehcache-core.jar、mybatis-ehcache.jar、slf4j-api.jar、slf4j-log4j.jar
+		2.编写ehcache.xml配置文件
+			<?xml version="1.0" encoding="UTF-8"?>
+			<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			 xsi:noNamespaceSchemaLocation="../config/ehcache.xsd">
+			 <!-- 磁盘保存路径 -->
+			 <diskStore path="E:\ehcache" />
+			 
+			 <defaultCache 
+			   maxElementsInMemory="1000" 
+			   maxElementsOnDisk="10000000"
+			   eternal="false" 
+			   overflowToDisk="true" 
+			   timeToIdleSeconds="120"
+			   timeToLiveSeconds="120" 
+			   diskExpiryThreadIntervalSeconds="120"
+			   memoryStoreEvictionPolicy="LRU">
+			 </defaultCache>
+			 
+			</ehcache>
+		3.在需要使用第三方缓存的mapper映射文件中配置<cache/>标签，并设置其type属性为Cache实现类的全类名
+			type=org.mybatis.caches.ehcache.EhcacheCache

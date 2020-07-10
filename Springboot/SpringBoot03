@@ -1,0 +1,6 @@
+在SpringBoot项目中，src/main/resources 中有两个文件夹,static和templates。
+SpringBoot默认在static目录中存放静态页面，而templates中存放动态页面。
+
+templates目录:无法通过页面URL直接访问
+	在SpringBoot中不推荐使用jsp作为视图层技术，而是默认使用Thymeleaf来做动态页面。
+	templates目录中存放Thymeleaf的页面。

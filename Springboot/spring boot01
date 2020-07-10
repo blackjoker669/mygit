@@ -1,0 +1,94 @@
+spring boot可以快速开发微服务
+	1.简化j2ee的开发
+	2.简化整个spring技术栈的整合(整合springmvc spring)
+	3.简化j2ee技术的整合(整合mybatis redis)
+微服务:一个项目可以由多个小型服务构成，每个小型服务称为微服务 
+	
+maven目录结构:
+	1.resource:
+		1.static:静态资源(js css 图片 音频 视频)
+		2.templates：模板文件(模板引擎freemarker，thymeleaf；默认不支持jsp)
+		3.application.properties:配置文件
+		
+@SpringBootApplication:是SpringBoot的主配置注解,表示启动类
+	1.@SpringBootConfiguration：标注该注解的类是一个配置类，它是@Configuration的派生注解
+		@Configuration:表示"配置类"，用于配置的类。
+	@SpringBootConfiguration是springboot中的注解，而@Configuration是spring中的注解
+	
+	2.@EnableAutoConfiguration：根据添加的依赖jar包自动配置spring应用
+		@AutoConfigurationPackage:自动注入主类当前所在包下所有加了注解的类(如@Controller、@Service、@Repository等)，以及配置类(@Configuration)
+			@Import(AutoConfigurationPackages.Registrar.class):
+				new PackageImport(metadata).getPackageName():主类所在包的包名
+		@Import(AutoConfigurationImportSelector.class):直接导入普通的类，导入实现了ImportSelector接口的类，导入实现了ImportBeanDefinitionRegistrar接口的类
+	3.@ConponentScan:组件扫描
+	
+启动类:标注了@SpringBootApplication的类
+启动类在启动时，会进行注解扫描(@Controller、@Service、@Repository...),
+扫描位置为同包或者子包下的注解，所以启动类的位置应放于包的根下。
+
+启动类表示项目的启动入口，启动器starter表示依赖jar包的坐标
+
+启动器包含了项目相关场景的所有依赖jar包，需要什么功能就导入什么场景，在jar包管理上非常方便，实现一站式开发。
+
+spring-boot-starter：这是spring-boot的核心启动器，包含了自动配置、日志和YAML。
+
+spring boot中有两种上下文对象，一种是bootstrap，另外一种是application
+
+配置文件application:
+.properties的优先级比YAML高，如果多个配置文件都配置了相同的属性，默认使用第一个读取到的，覆盖后面读取的
+
+properties格式：
+	server.port=8888
+
+YAML格式：
+	server:
+		port: 8888
+1.大小写敏感
+2.使用缩进代表层级关系
+3.相同部分只出现一次
+4.默认可不写引号，转义必须在""内才有作用
+
+配置文件的存放位置：
+1.当前项目根目录中
+2.当前项目根目录下的一个/config子目录中
+3.项目的resources即classpath根路径中
+4.项目的resources即classpath根路径下的/config目录中
+
+内部配置文件加载顺序：
+	1.当前项目根目录下的一个/config子目录中（最高优先级）
+	2.当前项目根目录中(其次)
+	3.项目的resources即classpath根路径下的/config目录中(一般)
+	4.项目的resources即classpath根路径中(最低优先级)
+	注意: 
+		如果某项配置冲突，则优先级从上往下
+		如果不冲突，则互补结合使用
+外部配置文件:
+	在项目Run configuration -> arguments ：
+	--spring.config.location=外部配置文件路径
+	外部配置文件优先级大于内部配置文件 
+	　
+		
+
+配置文件的占位符语法：${}
+作用:
+	1.${}可以获取框架提供的方法中的值如：${random.int}等。
+	2.占位符可以获取配置文件中的键的值赋给另一个键作为值。
+		school:
+			name:wit
+			addr:${school.name}
+			
+生成随机数：
+	${random.value}:类似uuid的随机数，没有"-"连接
+	${random.int}:随机取整型范围内的一个值
+	${random.long}:随机取长整型范围内的一个值
+	${random.int(100,200)}:随机取整型100-200范围内的一个值
+	${random.uuid}:生成一个uuid，有短杠连接
+	${random.int(10)}:生成一个10以内的数
+
+bootstrap由父ApplicationContext加载，它优先于application加载。
+bootstrap是应用程序的父上下文
+bootstrap主要用于从额外的资源来加载配置信息，还可以在本地外部配置文件中解密属性。
+
+在配置文件中加debug=true可查看springboot启动了哪些自动装配
+positive matchs:启动的
+negative matchs：未启动的

@@ -1,0 +1,21 @@
+1、什么是JSP
+JSP是Java Server Page的缩写，翻译过来就是Java服务器端网页，简单而言就是可以在HTML页面中编写Java代码的页面。JSP本质上是一个Servlet，其运行原理：每个JSP页面在第一次被访问时，JSP引擎将它翻译成一个Servlet源程序，接着再把这个Servlet源程序编译成class类文件，然后再由Web容器（Servlet引擎）像调用普通Servlet程序一样的方式来装载和解释执行这个由JSP页面翻译成的Servlet程序。
+
+2、JSP隐含对象
+（1）request：HttpServletRequest的对象
+
+（2）response：HttpServletResponse的对象（在开发过程中很少会调用）
+
+（3）pageContext：PageContext的对象，页面的上下文，可以从该对象中获取到其他八个隐含对象，也可以从中获取到当前页面的其他信息
+
+（4）session：HttpSession的对象，代表浏览器和服务器的一次会话
+
+（5）application：ServletContext的对象，代表当前Web应用
+
+（6）config：当前JSP对应的Servlet的ServletConfig对象（在开发过程中很少使用，如需要访问当前JSP配置的初始化参数，需要通过映射的地址才可以）
+
+（7）out：JspWriter的对象，常调用out.println()可以把字符串打印到浏览器上
+
+（8）page：指向当前JSP对应的Servlet对象的应用，但是是Object类型，只能调用Object类的方法（在开发过程中较少使用）
+
+（9）exception：JSP声明了page指令的isErrorPage=“true”时才可以使用，用于报错JSP页面

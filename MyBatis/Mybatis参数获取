@@ -1,0 +1,42 @@
+BindingException:参数获取异常
+不同的参数类型,${}和#{}的不同取值方式:
+1.当传输参数为单个String或基本数据类型和其包装类
+	#{}:可以以任意的名字获取参数值
+	${}:只能以${value}或${_parameter}获取参数值
+	
+2.当传输参数为JavaBean时
+	#{}和${}都可以通过属性名直接获取属性值，但是要注意${}的字符串拼接
+	
+3.当传输多个参数时,mybaits会默认将这些参数放在map集合中
+两种方式:
+	*键为0,1,2,3...N-1,值为参数 	
+	*键为param1,param2,param3...paramN,值为参数
+	#{}:可以通过#{0},#{1}和#{param1},#{param2}获取参数值
+	${}:只能通过${param1},${param2}获取参数值
+
+4.当传输map参数时
+	#{}和${}都可以通过键名直接获取属性值，但是要注意${}的字符串拼接
+	1.在接口中定义方法:
+	Emp getEmpByMap(Map<String,Object> map);
+	2.在映射文件中:
+	<select id="getEmpByMap" resultType="Emp">
+		select * from emp where eid="${eid}" and ename="${ename}"
+	或
+		select * from emp where eid=#{eid} and ename=#{ename}
+	</select>
+	3.使用mapper
+	Map<String,Object> map = new HashMap<>();
+	map.put("eid","1");
+	map.put("ename","张三");
+	mapper.getEmpByMap(map);
+	
+5.使用注解@Param(value)将参数放入map集合中,value为键名(属性名)
+	1.在接口中定义方法:
+	Emp getEmpByIdAndName(@Param("eid)String eid,@Param("ename")String ename);
+	2.在映射文件中:
+	<select id="getEmpByIdAndName" resultType="Emp">
+		select * from emp where eid=#{eid} and ename=#{ename}
+	</select>
+	
+6.当传输参数为List或Array,mybatis会将List或Array放在map中
+List以list为键，Array以array为键，

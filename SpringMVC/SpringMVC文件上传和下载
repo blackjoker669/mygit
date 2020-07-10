@@ -1,0 +1,81 @@
+1.在springMVC配置文件中，配置MultipartResolver处理客户端上传的文件，将其包装为MultipartFile，
+同时开启MVC驱动和default-servlet来加载静态资源;
+	<!-- 处理客户端上传的文件，将其包装为MultipartFile -->
+	<bean id="multipartResolver" class="org.springframework.web.multipart.support.StandardServletMultipartResolver" />
+	<!-- 使用默认servlet加载静态资源 -->
+	<mvc:default-servlet-handler/>
+	<!-- 开启mvc驱动，json数据转换、静态资源访问等功能 -->
+	<mvc:annotation-driven />
+
+设置前端处理器DispatcherServlet的<multipart-config>属性，即设置文件下载的相关配置
+	<multipart-config>
+		<!--文件下载后保存的路径-->
+		<location>e:/mvc/uploads</location> 
+		<!--文件下载的最大字节数，不支持表达式，只能写数值-->
+		<max-file-size>5242880</max-file-size>
+		<!--针对 multipart/form-data 请求的最大数量，默认为-1，表示没有限制-->
+		<max-request-size>10485760</max-request-size>
+		<!--当前数据量大于该值时，内容将被写入文件-->
+		<file-size-threshold>0</file-size-threshold>
+	</multipart-config>
+	
+2.设置上传和下载功能的前端页面：
+<body>
+	<!--下载-->
+	<a href="down">下载图片</a>
+	<!--上传-->
+	<form action="up" method="post" enctype="multipart/form-data">
+		文件:<input type="file" name="file" />
+		描述:<input type="text" name="desc" />
+		<input type="submit" value="上传" />
+	</form> 
+</body>
+
+3.在控制层设置处理方法：
+	*下载方法：
+	@RequestMapping("/down")
+	public ResponseEntity<byte []> down(HttpSession session)throws Exception {
+		
+		//获取项目路径
+		String realPath = session.getServletContext().getRealPath("img");
+		//获取文件路径
+		String filePath = realPath + File.separator + "1.jpg";
+		//创建文件输入流，读取文件
+		FileInputStream is = new FileInputStream(filePath);		
+		//aviailable():获取当前输入流所读取文件的大小/byte
+		byte[] b = new byte[is.available()] ;
+		//将文件字节码数据放入字节数组b
+		is.read(b);
+		is.close();
+		//创建响应头对象，设置属性Content-Disposing=attachment;file=图片.jpg
+		HttpHeaders header = new HttpHeaders();
+		header.add("Content-Disposition", "attachment;filename=图片.jpg");
+		//创建响应状态码对象，设置状态码为200
+		HttpStatus status = HttpStatus.OK ;
+		ResponseEntity<byte []> entity = new ResponseEntity<byte []>(b, header, status);
+		return entity;
+		
+	}
+	
+	*上传方法：
+	@RequestMapping(value="/up",method=RequestMethod.POST)
+	public ModelAndView up(MultipartFile file,String desc){
+		ModelAndView mv = new ModelAndView();
+		mv.setView(new MappingJackson2JsonView());
+		//获取原始文件名
+		String fileName = file.getOriginalFilename();
+		//目标文件
+		File dest = new File(fileName);
+		
+		//保存文件
+		try {
+			file.transferTo(dest);
+			mv.addObject("success", true);
+			mv.addObject("msg", "文件上传成功!");
+		} catch (IllegalStateException | IOException e) {
+			mv.addObject("success", false);
+			mv.addObject("msg", "文件上传失败!");
+			e.printStackTrace();
+		}
+		return mv;
+	}

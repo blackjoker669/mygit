@@ -1,0 +1,48 @@
+普通对象的内存布局: Object o = new Object()
+	1.markword 8字节 ：记录对象的锁信息和分代信息
+		
+	2.class pointer 4字节： 类型指针,指向对象的class类型
+		-XX:+UseCompressedClassPointers : 默认开启压缩类型指针，将原本8字节的类型指针压缩成4字节。		
+	
+	3.instance data	一个int类型4字节，long8字节：实例数据,记录成员变量
+		-XX:+UseCompressedOops : 默认开启压缩普通对象指针，将普通对象的类型字节压缩成4个字节。
+		
+	4.padding 对齐行，如果对象字节长度不能被8整除，就补齐
+	
+数组对象的内存布局: int[] arr = new int[4]或 T[] arr = new T[4]
+	1.markword
+	2.class pointer
+	3.数组长度 length(4字节)
+	4.instance data
+	5.padding
+	
+java -XX:+PringCommandLineFlags -version
+
+happens-before：保证操作之间的内存可见性
+	在JMM中，如果一个操作执行的结果需要对另一个操作可见，那么这两个操作之间必须要存在happens-before关系
+	Happens-Before规则-无需任何同步手段就可以保证的
+	1）程序顺序规则：一个线程中的每个操作，happens-before于该线程中的任意后续操作。
+	2）监视器锁规则：对一个锁的解锁，happens-before于随后对这个锁的加锁。
+	3）volatile变量规则：对一个volatile域的写，happens-before于任意后续对这个volatile域的读。
+	4）传递性：如果A happens-before B，且B happens-before C，那么A happens-before C。
+	5）start()规则：如果线程A执行操作ThreadB.start()（启动线程B），那么A线程的ThreadB.start()操作happens-before于线程B中的任意操作。
+	6）join()规则：如果线程A执行操作ThreadB.join()并成功返回，那么线程B中的任意操作happens-before于线程A从ThreadB.join()操作成功返回。
+	7）线程中断规则:对线程interrupt方法的调用happens-before于被中断线程的代码检测到中断事件的发生。
+
+as-if-serial：主要限制单线程的指令重排序
+	不管怎么重排序（编译器和处理器为了提高并行度），（单线程）程序的执行结果不能被改变。
+	编译器和处理器不会对存在数据依赖关系的操作做重排序，因为这种重排序会改变执行结果。
+	
+CAS的ABA问题通过加版本号或者boolean=false
+
+int i = 1;
+i = i++;
+class文件反汇编:
+	iconst_1    将int类型数据1压入操作数栈
+	istore_1	将操作数栈栈顶的数据1弹出，赋给局部变量表中int类型的变量i
+	iload_1 	将局部变量表中int类型变量i的值压入操作数栈(如果是 i = ++i，则将2压入操作数栈)
+	iinc 1 by 1    将局部变量表中的i自增，i=2
+	istore_1	将操作数栈中的1弹出，赋给局部变量表中的i
+最后，i=1
+
+	

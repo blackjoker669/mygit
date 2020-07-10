@@ -1,0 +1,19 @@
+[mysqld]					#服务器端标签
+character_set_server=utf8   #编码 
+port=3306        			#端口号
+user=mysql					#负责数据库管理用户
+socket=/tmp/mysql.sock		#套接字文件
+basedir=/app/database/mysql	#软件的安装位置
+datadir=/data/3306			#数据的存放位置
+[mysql]             		#客户端标签
+port=3306					#端口号
+socket=/tmp/mysql.sock		#读取socket文件的位置点
+default-character-set=utf8	#编码
+
+MySQL的启动和关闭
+	1.启动
+	systemctl start mysqld 
+	systemctl start mysql.server
+	2.关闭
+	systemctl stop mysqld
+	

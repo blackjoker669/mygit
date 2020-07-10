@@ -1,0 +1,72 @@
+一、概述
+1.Spring-MVC是为展现层提供的基于MVC设计理念的优秀Web框架，是目前最主流的MVC框架之一
+2.Spring3.0之后全面超越了Struts2,成为最优秀的MVC框架。
+3.Spring-MVC通过一套MVC注解，让POJP成为处理请求的控制器,而无须实现任何接口
+4.支持REST风格的URL请求。
+5.采用了松散耦合可插拔组件结构，比其他MVC框架更具扩展性和灵活性。
+
+POJO: POJO（Plain Ordinary Java Object）简单的Java对象，实际就是普通JavaBeans，是为了避免和EJB混淆所创造的简称。
+	*使用POJO名称是为了避免和EJB混淆起来, 而且简称比较直接. 其中有一些属性及其getter setter方法的类,没有业务逻辑
+，有时可以作为VO(value -object)或dto(Data Transform Object)来使用.当然,如果你有一个简单的运算属性也是可以的,但不
+允许有业务方法,也不能携带有connection之类的方法。
+
+REST：表述性状态传递，Representational State Transfer，简称REST
+	*它是一种针对网络应用的设计和开发方式，可以降低开发的复杂性，提高系统的可伸缩性。
+	
+
+SpringMVC的主要组件：
+	1.DispatcherServlet:核心控制器\端控制器
+	2.Controller:处理器\页面控制器，做的是MVC中的Controller的事情，但逻辑控制转移到前段控制器，用于对请求进行处理
+	3.HandlerMapping:请求映射处理器，如果映射成功，返回一个HandlerExecutionChain对象
+	(包含一个Handler处理器(页面控制器)对象、多个HandlerInterceptor拦截器对象)
+	4.View Resolver:视图解析器,处理返回的页面。实现页面跳转
+	5.LocalResolver:本地化、国际化。
+	6.MultipartResolver:文件上传解析器
+	7.HandlerExceptionResolver:异常处理器
+
+SpringMVC的搭建过程:
+	1.导入jar包
+	2.在web.xml中配置springMVC的核心控制器DispatcherServlet
+	作用：加载springMVC的配置文件springMVC-servlet.xml,位于WEB-INF文件夹
+	当加载了配置文件，springMVC就会根据扫描组件找到控制层(处理请求，做出响应)
+	<servlet>
+		<servlet-name>springMVC</servlet-name>
+		<servlet-class>org-springframework.web.servlet.DispatcherServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>springMVC</servlet-name>
+		<url-pattern>/</url-pattern>
+	</servlet-mapping>
+	3.创建一个XxxController类，在此类上加上@Controller注解，springMVC就会将此类作为控制层加载，让其处理请求响应
+	4.在控制层中，需要在方法上设置@RequestMapping(value="xxx")，springMVC就是通过此注解将请求路径与
+	控制层中的方法进行匹配，此时请求路径为localhost:8080/projectName/xxx
+	5.处理请求的方法会返回一个字符串，即视图名称，最终会通过配置文件中配置的视图解析器实现页面跳转
+	方式:prefix + 视图名称 + suffix, 此为最终跳转的页面路径
+	
+WEB-INF下的内容只能通过内部转发访问
+
+RequestMapping支持Ant路径风格
+	Ant风格资源地址支持3种匹配符
+		1.?:匹配文件名中的一个字符
+		2.*:匹配文件名中的任意字符
+		3.**:匹配多层路径
+	
+HiddenHttpMethodFilter:
+
+快速配置SpringMVC的前端控制器: Art+/选择倒数第二个
+   <!-- The front controller of this Spring Web application, responsible for handling all application requests -->
+	<servlet>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+		<init-param>
+			<param-name>contextConfigLocation</param-name>
+			<param-value>location</param-value>
+		</init-param>
+		<load-on-startup>1</load-on-startup>
+	</servlet>
+
+	<!-- Map all requests to the DispatcherServlet for handling -->
+	<servlet-mapping>
+		<servlet-name>springDispatcherServlet</servlet-name>
+		<url-pattern>url</url-pattern>
+	</servlet-mapping>

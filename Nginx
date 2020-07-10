@@ -1,0 +1,179 @@
+Nginx安装
+	## 解压
+	tar -zxvf nginx-xxx.tar.gz 
+	## 进入nginx目录
+	cd nginx-xxx
+	## 配置
+	./configure --prefix=/usr/local/nginx
+	## 编译
+	make
+	make install
+	## cd到刚才配置的安装目录/usr/loca/nginx/
+	cd /usr/loca/nginx/sbin
+	## 测试
+	./nginx -t
+
+Nginx常用命令
+	cd /usr/local/nginx/sbin
+	
+1.查看Nginx版本号
+	./nginx -v
+2.启动nginx
+	./nginx  
+3.关闭nginx
+	./nginx -s stop
+4.重启nginx
+	./nginx -s reload
+	
+##配置nginx开机自启动
+vim /etc/rc.d/rc.local
+添加配置
+/usr/loca/nginx/sbin/nginx
+
+##反向代理实例1
+1.在windows系统的c:/windows/system32/drivers/etc/host文件中添加配置
+	服务器IP + 自定义域名  例如: 192.168.80.128 + www.123.com
+2.对nginx配置文件中的两处进行配置
+	vim /usr/local/nginx/conf/nginx.conf
+	server {
+        listen       80;
+        server_name  192.168.80.128;
+		
+		charset utf-8;
+		
+		 location / {
+            root   html;
+            proxy_pass http://127.0.0.1:8080;
+            index  index.html index.htm;
+        }
+	}
+3.重启nginx
+	./nginx -s reload
+4.在windows系统的浏览器中输入www.123.com，可访问到Linux系统中的tomcat页面
+
+##反向代理实例2
+访问不同的域名跳转到不同的tomcat服务器
+1.首先配置两个tomcat服务器,一个8080端口，一个8081端口
+2.创建测试页面，在两个tomcat文件的webapps目录下分别创建edu以及blk两个测试目录，分别新建一个测试页面a.html，内容分别为<h1>test 8080</h1>和<h1>test 8081</h1>
+3.开放需要的端口
+4.nginx配置文件
+server {
+        listen       9001;
+        server_name  192.168.80.128;
+		
+		charset utf-8;
+		
+		location ~ /edu/ {
+            proxy_pass http://127.0.0.1:8081;
+        }
+		location ~ /blk/ {
+            proxy_pass http://127.0.0.1:8080;
+        }
+	}
+
+##location配置指令说明
+location [ = | ~ | ~* | ^~ ] uri {
+	proxy_pass ...;
+}
+1. =  : 用于不含正则表达式的uri前，要求请求路径与uri严格匹配，否则无法处理请求
+2. ~  : 用于表示uri包含正则表达式，并且区分大小写
+3. ~* : 用于表示uri包含正则表达式，并且不区分大小写
+4. ^~ : 用于不含正则表达式的uri前，处理与uri匹配度最高的请求路径
+
+##负载均衡
+首先配置多个tomcat服务器，在配置文件http块中进行配置，
+然后访问http://192.168.80.128/edu/a.html
+upstream myserver{
+	server localhost:8080;
+	server localhost:8081;
+}
+server {
+	listen  80;
+	server_name localhost;
+	location / {
+		proxy_pass http://myserver;
+		proxy_set_header Host $host;
+		proxy_connect_timeout 10;
+	}
+}
+
+##负载均衡策略
+1.(默认)轮询策略
+	也就是平均分配，依次分配，如果服务器宕机则自动剔除
+例：upstream myserver{
+	server localhost:8080;
+	server localhost:8081;
+}
+2.weight权重策略
+	weight值越大，分配的客户端请求越多
+例: upstream test_weight{
+	server 192.168.80.128 weight=10;
+	server 192.168.80.128 weight=20;
+}
+3.ip_hash策略
+	每个请求按访问ip的hash结果分配，这样每个访客固定访问一个后端服务器，可以解决session的问题。
+例: upstream test_ip_hash{
+	ip_hash;
+	server 192.168.80.128:8080;
+	server 192.168.80.128:8081;
+}
+4.fair(第三方)策略
+	按服务器的响应时间来分配客户端请求，响应时间短的优先分配。
+例:	upstream test_fair{
+	server 192.168.80.128:8080;
+	server 192.168.80.128:8081;
+	fair;
+}
+
+##nginx动静分离
+	将动态请求和静态请求分开，使用Nginx处理静态页面，tomcat处理动态页面。
+###静态资源访问
+在/data目录下创建image文件夹，并创建静态资源文件，http://192.168.80.128/image/4.jpg
+server {
+  listen       80;
+  server_name  localhost;
+  location /image/ {
+       root /data/;
+       index  index.html index.htm;
+  }
+  location /profile/ {
+       root /data/;
+       autoindex on; 	##列出静态资源文件
+  }
+}
+	
+##nginx高可用集群
+1.需要两台ip不同的服务器
+2.在两台服务器安装nginx
+3.在两台服务器安装keepalived
+yum install keepalived -y
+安装完成后，在/etc/keepalived目录中可以找到配置文件keepalived.conf
+nginx的高可用主要是通过配置keepalived.conf文件
+启动nginx和keepalived
+	systemctl start keepalived.service
+在浏览器中访问虚拟ip
+##开启VRRP组播通信
+firewall-cmd --direct --permanent --add-rule ipv4 filter INPUT 0 --in-interface ens33 --destination 224.0.0.18 --protocol vrrp -j ACCEPT
+#vrrp抓包，查看报文
+tcpdump -i ens33 vrrp -n
+脑裂解决：https://blog.csdn.net/liu1160848595/article/details/104653226?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.nonecase
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	

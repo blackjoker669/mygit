@@ -1,0 +1,10 @@
+SpringMVC的工作流程:
+	1.通过web.xml加载前端处理器DispatcherServlet
+	2.客户端发送请求，DispatcherServlet调用HandlerMapping处理器映射器找到处理器
+	3.返回HandlerExecutionChain
+	4.通过处理器适配器HandlerAdapter调用具体的处理器Handler
+	5.经过Handler，即Controller的方法处理后，返回一个ModelAndView对象给处理器适配器
+	6.处理器适配器返回ModelAndView对象给DispatcherServlet
+	7.DispatcherServlet将ModelAndView对象传给视图解析器，进行视图解析
+	8.视图解析器返回一个View给DispatcherServlet，对View进行渲染
+	9.将渲染的视图返回给客户端

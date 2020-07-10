@@ -1,0 +1,79 @@
+1.导入jar包(3个):
+	*mybatis.jar
+	*log4j.jar
+	*mysql-connector.jar
+2.创建Mybatis的核心(全局)配置文件:mybatis-config.xml， 并进行配置: 连接数据库
+
+	resource:映射文件
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<!DOCTYPE configuration
+	 PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+	 "http://mybatis.org/dtd/mybatis-3-config.dtd">
+	<configuration>
+		<environments default="development">
+			<environment id="development">
+				<transactionManager type="JDBC" />
+				<dataSource type="POOLED">
+					<property name="driver" value="${driver}" />
+					<property name="url" value="${url}" />
+					<property name="username" value="${username}" />
+					<property name="password" value="${password}" />
+				</dataSource>
+			</environment>
+		</environments>
+		<!--引入映射文件-->
+		<mappers>
+			<mapper resource="org/mybatis/example/BlogMapper.xml" />
+		</mappers>
+	</configuration>
+	
+3.创建mapper接口,mybatis不需要实现类，只需要通过映射文件绑定接口
+
+	public interface UserMapper {
+	
+		User getUserById(String id);
+	}	
+
+4.创建映射文件:XxxMapper.xml，并进行配置(创建实体类和数据库表对象的映射关系) : 操作数据库
+
+	*namespace:mapper接口的全限定名
+	*id：mapper接口的方法名
+	*resultType：返回值(实体类)的全限定名
+	#{id}: 使用通配符代表id，对应preparedStatement
+	${value}: 不使用通配符，对应statement，需要注意字符串拼接
+		*通常在模糊查询和批量删除中使用
+	*如果某个属性值获取不到，在sql语句中给该属性(表中属性名)换个别名(查询结果名)
+	
+	<?xml version="1.0" encoding="UTF-8" ?>
+	<!DOCTYPE mapper
+	 PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	 "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+	 
+	<mapper namespace="com.mybatis.test.UserMapper">      
+		<select id="selectUser" resultType="User">
+			select * from user where id = #{id}
+		</select>
+	</mapper>
+
+5.获取mybatis操作数据库的会话对象SqlSession
+6.使用：
+	*openSession(true):开启自动提交事务
+	InputStream is = Resources.getResourceAsStream("mybatis-config.xml");
+	SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is);
+	SqlSession sqlSession = factory.openSession();
+	UserMapper mapper = sqlSession .getMapper(UserMapper.class);
+	User user = mapper.getUserByUid("1");
+	System.out.println(user);
+	
+
+解决核心配置文件mybatis-config.xml的标签提示无效问题:
+第一种:
+	Window——>Preferences——>XML——>XML Catalog——>User Specified Entries——>Catalog Entry——>add
+		location:   .dtd文件的路径
+		key type:	URI
+		key : 		http://mybatis.org/dtd/mybatis-3-config.dtd   
+
+第二种:
+		location:   .dtd文件路径
+		key type:   Public id
+		key: 		-//mybatis.org//DTD Mapper 3.0//EN

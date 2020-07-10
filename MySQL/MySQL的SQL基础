@@ -1,0 +1,183 @@
+MySQL的SQL基础
+	结构化的查询语言，关系型数据库中通用的一类语言
+	
+数据类型:
+	1.整型
+	tinyint 1字节	0~255
+	int		4字节	0~2^32-1
+	bigint	8字节	0~2^64-1
+	
+	2.字符型
+	char:定长字符,只会申请固定的存储空间。
+		存储过程: 1.申请10个磁盘空间 ——> 2.存储数据，存不满用空格填充。
+		
+	varchar:变长字符,会根据需要申请存储空间。
+		存储过程: 1.判断字符长度 ——> 2.申请字符长度的磁盘空间 ——> 3.存储数据 ——> 4.申请1个或2个字节(如果字符个数大于254个)存储字符个数
+		所以存储相同字符的char和varchar，varchar类型的字节长度始终大于char类型的字节长度，1或2个字节。
+		
+	假如存储的字符个数超出指定长度:
+	5.6版本会将超出的部分截断，然后将剩下的字符存入表中。
+	5.7版本则会报错:数据长度超出范围。
+	
+	每个英文字符和数字占一个字节空间
+	中文字符根据字符集来判断占多少个字节空间：
+	utf-8：每个中文字符占3个字节长度
+	emoji字符:占4个字节长度
+	
+	3.枚举类型
+	enum('男','女')
+	可加下标索引提高性能
+	
+	4.时间类型
+	datetime （8字节）范围 1000-01-01 00:00:00 至 9999-12-31 23:59:59
+	timestamp时间戳	(4字节) 会受到时区影响，范围是1970-01-01 00:00:00 至 2038-01-19 03:14:07
+	
+SQL应用
+	-help 
+1.client
+	\c 结束上一条命令运行
+	\G 格式化输出
+	\q 退出mysql会话
+	source 导入SQL脚本，类似<
+
+2.Server
+	1.DDL 数据定义语言
+		库定义	
+		1.创建库: create database 库名 charset utf8mb4;
+			库名：小写，业务有关，不要数字开头，库名不要太长，必须指定字符集
+		2.查看库: show databases; show create 库名 database;
+		3.修改库: alter database 库名 charset utf8mb4;
+		4.删除库: drop database 库名;		
+		危险操作，生产数据库中，除了管理员，任何人没有删库权限。
+		
+		表定义
+		1.创建表：create table 表名(各字段名) engine = InnoDb charset=utf8mb4;
+		2.查看表：
+			desc 表名; 
+			show tables;  
+			show create table 表名;
+		3.修改表: 
+			添加列: alter table 表名 add column 列名 类型 not null unique key;
+			修改列: alter table 表名 modify 列名 类型 not null unique key;
+			删除列：alter table 表名 drop 列名;
+			修改表名: alter table 表名 rename to 新表名;
+		4.删除表：
+			drop table 表名;
+	2.DCL 数据控制语言
+		授权和回收权限
+		revoke, grant
+	3.DML 数据操作语言.
+		针对表中的数据进行操作：
+		
+		增insert 插入数据,一般插入之前需要查询表的结构，desc 表名;
+			insert into 表名(column1,column2...) values (value1,value2...);
+		
+		改update 修改数据
+			update 表名 set column = new_value where id > 10;   #将id大于10的行数据的column字段修改为new_value
+		
+		删delete 删除数据（某些数据）
+			delete from 表名 where id > 10;  #将id大于10的行数据删除
+			
+		删除全表数据：	
+			delete from 表名;    #逻辑上，逐行删除，操作较慢。并没有从磁盘空间释放，只是在存储层上打标记。且id的自增值不会降低(HWD高水位线)
+				误删除恢复：通过反转日志(binlog)，或者延时从库进行恢复
+			drop table 表名;     #将表结构和数据行物理层次删除，只能通过备份+日志恢复
+			truncate table 表名; #清空表段中的所有数据页，会立即释放磁盘空间，并降低水位线。
+		伪删除:
+			1.修改表结构，添加state状态列 ，1表示存在，0表示不存在
+				alter table 表名 add column state tinyint not null default 1;
+			2.删除数据改为update	
+				update 表名 set state=0 where id = 1;		#修改行的状态state=0,即为删除
+			3.查询语句修改为
+				select * from 表名 where state =1 ; 		#查询state=1的数据，即存在的数据
+	
+	4.DQL 数据查询语言,属于DML
+		查select
+			select * from 表名;
+			
+		去重distinct:
+			select distinct字段1，字段2 from 表名;
+			#将表中的字段1和字段2的重复值过滤。
+			
+		模糊查询like:
+			_ : 代表任意一个字符
+				select * from 表名 where username like '张_'; #查询两位数名字姓张的数据
+			% : 代表任意多个字符
+				select * from 表名 where username like '张%'; #查询名字姓张的数据
+			注意：
+				like语句在使用时，不要将%写在前面，mysql优化器判断不走索引，性能较低。
+				like语句只用在字符串列。
+		
+		排序order by:
+			select * from 表名 order by age ; #按年龄大小排序(默认升序)
+			select * from 表名 order by age desc; #按年龄大小降序排序(desc代表降序)
+		
+		拼接concat：
+			select concat(user,'@',host) from mysql.user;
+			
+		分组group by:
+			select * from 表名 group by 字段名; #将字段值相同的进行分组，分组的个数取决于不同的字段值有多少个
+			一般配合聚合函数(max(),min(),avg(),sum())使用
+			
+			错误：sql_mode=only_full_group_by
+			select list中的列，要么是group by的条件，要么是聚合函数的参数。
+			mysql不支持行数据的一对多或者多对一。
+			需要将这样的列进行列转行。group_concat(列名)
+		
+		条件查询where & having:
+			select * from 表名 where id > 2; #where子句不能过滤组，只能用于过滤行
+			select * from 表名 group by 字段名 having count(*) >2; #通过字段值相同且记录行数大于2的行进行分组
+		
+		限制limit:
+			select * from 表名 limit 5,10; #查询表中的6-10行记录
+			用于分页查询， 3-5行数据:
+			limit 2,3  跳过第2行查询后3行
+			limit 3 offset 2   
+		
+		多表连接查询join:
+			1.内连接(应用广泛) A join B on 连接条件(A.xx=B.yy)
+			将多个表连接起来，对业务需求的行数据进行整理与合并。
+			select a.*,b.* from tableA a join tableB b on a.id = b.id ;
+			
+			2.外连接
+			左外连接left join,左表的数据全部显示，右表只显示符合连接条件的数据
+			右外连接right join,右表的数据全部显示，左表只显示符合连接条件的数据
+		
+		union 和 union all的区别：
+		1.union : 聚合两个结果集，会自动进行结果集去重复。类似select distinct(字段)...where 条件1 or 条件2 
+		2.union all : 聚合两个结果集，不会去重复。
+		
+show语句:
+	1.show database;    			#查询所有的库;
+	2.show tables;					#查询当前库下所有的表;
+	3.show tables from 库名;		#查询某个库下的所有的表;
+	4.show processlst; 				#查询连接mysql的用户;
+	5.show full processlist;    	#查询连接mysql的用户详细信息;
+	6.show charset;      			#查询mysql支持的字符集;
+	7.show collation;				#查询支持的校对规则;
+	8.show engines;					#查询支持的数据库引擎;
+	9.show grants for ; 			#查看某用户的权限;
+	10.show create database;		#查看建库语句;
+	11.show create table;			#查看建表语句;.
+	12.show index from table;   	#查看表的索引信息;
+	13.show engine innodb status; 	#查询innodb引擎状态;
+	14.show status; 				#查看数据库状态信息;
+	15.show status like '%%';   	#模糊查询数据库状态;
+	16.show variables;				#查看所有数据库参数;
+	17.show variables like '%%';	#模糊查询部分参数;
+	18.show binary logs;			#查询所有二进制日志文件信息;
+	19.show binlog events in ;		#查询二进制日志事件;
+	20.show master status; 			#查询主库状态信息;
+	21.show slave statis;			#查询从库状态信息;
+	22.show relaylog events in 		#查看中继日志事件;
+	
+Information_schema元数据
+	每次数据库启动，会自动在内存中生成T_S，生成查询MySQL部分元数据视图信息。
+	视图: select语句的执行方法。不保存数据本身。		
+	MyISAM的数据行记录存储在 *.MYD文件中;
+	InnoDB的数据行记录存储在 *.idb文件中;
+	MyISAM的索引存储在 *.MYI 文件;
+	InnoDB的索引存储在 *.ibd 文件;
+	
+	desc
+	

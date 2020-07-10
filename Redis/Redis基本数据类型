@@ -1,0 +1,122 @@
+Redis可视化工具: http://www.treesoft.cn/dms.html
+redis事务特性：
+	1.原子性：所谓原子性是指不会被线程调度机制打断的操作；这种操作一旦开始，就一直运行到结束，中间不会有任何context switch(切换到另一个线程)。
+		*在单线程中，能够在单条指令中完成的操作都可以认为是“原子操作”,因为中断只能发生于指令之间
+		*在多线程中，不能被其它进程(线程)打断的操作就叫原子操作。
+		
+Redis有5种基本类型:
+1.字符串类型 string是二进制安全的，可以包含任何数据，包括jpg图片或者序列化的对象
+redis中一个字符串value最大可以是512M ( =512*1024*1024= 5,3687,0912字节)
+    1.存储: 
+		*set key value 设置单个键值对
+		*mset key1 value1 key2 value2 ...设置多个键值对
+		*msetnx key1 value1 key2 value2...设置多个键值对，当且仅当所有key都不存在时(只能创建新的key而不能覆盖已有的key)
+		*setex key seconds value 设置单个键值对，并设置过期时间/秒
+	2.覆盖：
+		*setrange key offset value 
+		用value覆盖key对应的value值，从offset位置开始
+		*getset key value
+		获取key对应的value值，同时修改为新的value
+	3.查询: 
+		*get key 查询key的value值
+		*mget key1 key2 key3...查询多个	
+		*getrange key from to 截取key的value值，类似substring方法
+	4.追加:
+		*append key value 
+		将value追加到key的value的末尾
+	5.长度:
+		*strlen key
+		获得value值的长度
+	6.删除: 
+		*del key
+	7.递增/递减：
+		*incr/decr key
+		将key中的数字值value增加/减少1，只能对数字值操作，如果为空则新值为1/-1
+	8.递增/递减指定步长
+		*incrby/decrby key 步长s
+		将key中的数字值value增加/减少s，只能对数字值操作，如果为空则新值为s/-s
+		
+
+2.hash哈希，键值对集合,一个string类型的field和value的映射表，适合用于存储对象。
+即hash的value中存放的是键值对，类似Map1<key1,Map2<key2,value2>>
+
+	1.存储:	
+		*hset key field value 设置单个hsah
+		*hmset key1 field1 value1 field2 value2...设置多个hash
+	2.查询: 
+		1.hget key field ：查询哈希集的field的value
+		2.hgetall key ：获取哈希集所有field和value
+		3.hexists key field: 查询哈希集中，field是否存在
+		4.hkeys key ：列出hash集的所有field
+		5.hvals key :查询该hash集的所有value
+		6.hincrby key field increment ： 为哈希集key中的域field的值加上增量increment
+		7.hsetnx key field value ： 将哈希集key中的域field的值设置为value，当且仅当该field 不存在
+		
+	3.删除: 
+		*hdel key field
+
+
+3.list列表，单键多值
+底层原理是个双向链表，对两端的操作性能很高，通过索引下标操作中间的节点性能会比较差
+	1.存储: 
+		*lpush key value :从左边存入列表
+		*rpush key value :从右边存入列表
+		*rpoplpush key1 key2:从key1右边弹出一个值，添加到key2的左边
+	2.查询:
+		*lrange key start end:范围获取
+		*lindex key index:按照索引获取元素(left)
+		*len key：获取列表长度
+	3.插入：
+		*linsert key before/after value newvalue
+		从左向右顺序，在key的value左边/右边，插入一个newvalue
+	3.删除:
+		*lpop key:从列表的最左边移出一个元素，并返回该元素
+		*rpop key:从列表的最右边移出一个元素，并返回该元素
+		*lrem key n value：从左边删除n个value（重复的元素）
+			n=0时，代表删除所有
+			n=-1时，代表反向删除
+			
+
+4.set集合类型，不重复
+redis的set是string类型的无序不可重复集合。
+它底层是一个value为null的hashmap表，所以添加，删除，查找的复杂度都是O(1)。
+	1.存储:
+		*sadd key value
+	2.查询:
+		*smembers key:获取key集合中所有元素
+		*sismember key member：查询key集合中是否有该member元素
+		*scard key: 返回该集合的元素个数
+		*srandmember key n ：从集合中随机获取n个值。
+		*sinter key1 key2... : 查询多个集合的交集
+		*sunion key1 key2... : 查询多个集合的并集
+		*sdiff key1 key2... :查询多个集合的差集
+			差集：集合1中有的而集合2没有的，即集合1减去它们的交集
+	3.删除:
+		*srem key value ：删除集合
+		*spop key n: 随机弹出key集合中n个元素，模拟抽奖
+		
+		
+		
+5.sortedset有序集合类型(zset)
+	1.存储:
+		*zadd key score1 member1 score2 member2 score3 member3...
+	2.查询:
+		*zrange key start end withscores ：按分数从小到大查询
+		*zrangebyscores key min max withscores :按分数查询范围[min,max]内的元素,从小到大
+		*zrevrangebyscores key max min withscores:按分数查询范围[min,max]内的元素,从大到小
+		*zincrby key increment member: 为元素member的score加上增量increment
+		*zcount key min max :统计集合元素的分数在[min，max]内的元素个数
+		*zrank key member :返回该值在集合中的排名，从0开始
+	3.删除：
+		*zrem key member
+		
+6.通用命令：按tab键可以提示
+	1. keys * :查询所有的key
+	2. type key :获取key对应的value类型
+	3. del key ：删除指定的key value
+	4. exits key :判断某个key是否存在
+	5. expire key seconds : 为键值设置过期时间，单位秒
+	6. ttl key: 查看还有多少秒过期，-1表示永久，-2表示已过期
+	7. dbsize ： 查看当前数据库key的数量 
+	8. flushdb : 清空当前库
+	9. flushall ：清空所有库(跑路)
